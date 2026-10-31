@@ -5,7 +5,7 @@
 #        ~/worker.sh exec <command...>   (same environment, any command; used for checks)
 set -euo pipefail
 . "$HOME/.nvm/nvm.sh" >/dev/null
-export WORKIE_WORKER_ORIGIN="${WORKIE_WORKER_ORIGIN:-https://job-dashboard-one-sigma.vercel.app}"
+export WORKIE_WORKER_ORIGIN="${WORKIE_WORKER_ORIGIN:-https://workie.ieverse.ai}"
 export WORKIE_WORKER_OWNER="${WORKIE_WORKER_OWNER:-household-dy-v1}"
 export WORKIE_WORKER_DIRECTORY="$HOME/.local/share/workie-worker-dy"
 
