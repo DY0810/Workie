@@ -28,7 +28,7 @@ import { previewLegacyImport, confirmLegacyImport } from './imports.ts';
 import { applicationContext } from './application-context.ts';
 import { answerQuestion, getQuestion, registerQuestionBatch } from './questions.ts';
 import { formQuestions } from '../../worker/screening.ts';
-import { formQuestionKey } from '../../worker/ats/protocol.ts';
+import { formQuestionKey, type AtsField } from '../../worker/ats/protocol.ts';
 import { ImportConfirmRequestSchema, ImportPreviewRequestSchema, IMPORT_PREVIEW_TTL_MS } from './discovery-protocol.ts';
 import * as source from './discovery-source.ts';
 import { getDiscoveryCorpus } from './discovery-corpus.ts';
@@ -855,6 +855,33 @@ describe('cap-held backlog and explicit historical attempts', () => {
     await ask(retry); // Resolved from the earlier attempt's answer.
     expect((await appRows()).find((a) => a.id === next.id)).toMatchObject({ state: 'screening', reasonCode: null });
     expect((await contextFor((await poll(token)).lease!)).answers[formQuestionKey(field)]).toBe('Stanford University');
+  });
+
+  it("hands another role the answer to a same-worded form question, under that form's own field key", async () => {
+    const { token, run } = await prepared('alice', { actions: ['read_jobs', 'fill_forms'], perEmployerCap: 5 }); addPostings(2); await complete(token, run.id);
+    const contextFor = async (lease: Lease) => applicationContext(db, token, lease.applicationId,
+      { protocolVersion: 1, ...ref(lease) }, { ...options, corpus: provider });
+    const ask = async (lease: Lease, ...fields: AtsField[]) => {
+      const { expectedProfileRevision, company, role, questions } = formQuestions(await contextFor(lease), fields);
+      return registerQuestionBatch(db, token, lease.applicationId, { expectedProfileRevision, company, role, questions, questionProtocolVersion: 1, eventId: randomUUID(),
+        fence: lease.fence, expectedRevision: lease.revision, checkpoint: { stage: lease.state as 'screening', sequence: (lease.checkpoint?.sequence ?? 0) + 1 } }, options);
+    };
+    const asked = { key: 'question_1', label: 'Which US state do you live in?', kind: 'text' as const, required: true };
+    // The first form also asks a question left unanswered, so it waits and the worker moves on to the second.
+    const first = (await poll(token)).lease!;
+    const [id] = (await ask(first, asked, { key: 'question_2', label: 'Anything else?', kind: 'text' as const, required: true })).questionIds;
+    const q = await getQuestion(db, 'alice', id, options);
+    await answerQuestion(db, 'alice', id, { ...request(), expectedRevision: q.revision, expectedProfileRevision: q.expectedProfileRevision,
+      expectedPolicyRevision: q.expectedPolicyRevision, expectedScopeHash: q.expectedScopeHash, factVersions: q.factVersions,
+      reuse: 'application', answer: { type: 'text', value: 'California' } }, options);
+    const second = (await poll(token)).lease!;
+    expect(second.applicationId).not.toBe(first.applicationId);
+    const same = { ...asked, key: 'question_77' };
+    await ask(second, same);
+    expect((await appRows()).find((a) => a.id === second.applicationId)).toMatchObject({ state: 'screening', reasonCode: null });
+    const next = (await poll(token)).lease!;
+    expect(next.applicationId).toBe(second.applicationId);
+    expect((await contextFor(next)).answers[formQuestionKey(same)]).toBe('California');
   });
 
   /** Leases the role, re-crawls its posting with `changes`, parks it the way the worker does, and takes the next snapshot. */

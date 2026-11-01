@@ -63,7 +63,7 @@ export function AnswerAllForm({ questions, control, view }: { questions: Questio
     void control.answerAll(answers);
   }}>
     <p className={styles.muted}>{questions.length} question{questions.length === 1 ? '' : 's'} for {questions[0].application.company} / {questions[0].application.role}.
-      Answer all of them, then submit once. Answers are used for this application only.</p>
+      Answer all of them, then submit once. A choice or short answer also fills the same question on later forms; longer text stays with this application.</p>
     {readOnly && <p role="status">Some questions are read-only until the worker or policy is available again.</p>}
     <fieldset disabled={view.locked} className={styles.form}>
       {questions.map((q, index) => {

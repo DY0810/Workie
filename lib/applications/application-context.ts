@@ -16,7 +16,7 @@ import { officialContentHash } from './discovery-source.ts';
 import { parseOfficialRequirements } from './official-requirements.ts';
 import { ApplicationArtifactManifestSchema, artifactManifestHash } from './artifact-protocol.ts';
 import { savedLetter } from './materials.ts';
-import { attemptIds } from './questions.ts';
+import { attemptIds, equivalentAnswer } from './questions.ts';
 
 type Fact = { state: string; value: unknown };
 const factValue = <T>(fact: Fact | undefined): T | null => fact?.state === 'confirmed' ? fact.value as T : null;
@@ -221,11 +221,12 @@ async function ownedContext(tx: WorkerTx, worker: WorkerRow, lease: { applicatio
   const screeningAnswers = await tx.select({ question: questions, answer: questionAnswers }).from(questions)
     .innerJoin(questionAnswers, and(eq(questionAnswers.ownerId, questions.ownerId), eq(questionAnswers.id, questions.answerId)))
     .where(and(eq(questions.ownerId, worker.ownerId), eq(questions.applicationId, checked.id), eq(questions.active, true)));
-  // A retry reuses answers given to earlier attempts of the same role (questions.ts reusableAnswer), never another role's.
+  // A retry reuses answers given to earlier attempts of the same role; another role lends only an equivalent form answer
+  // (questions.ts reusableAnswer).
   const attempts = await attemptIds(tx, checked);
   for (const { question, answer } of screeningAnswers) {
     if (!question.resolvedAt || question.policyRevision !== policy.revision || question.descriptor.scope.applicationId !== checked.id ||
-        !attempts.includes(answer.applicationId)) continue;
+        (!attempts.includes(answer.applicationId) && !equivalentAnswer(question.descriptor, answer))) continue;
     // A form question passes its answer through in the shape its field takes: options for a multi-select, yes/no for a checkbox.
     if (question.key.startsWith('form-') && (answer.value.type === 'choices' || answer.value.type === 'boolean')) {
       if (answer.value.type === 'boolean' || answer.value.value.length) answers[question.key] = answer.value.value;
