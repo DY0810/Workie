@@ -31,7 +31,7 @@ import { ApplicationArtifactManifestSchema, type ApplicationArtifactManifest, ar
 import { SUBMIT_APPROVAL } from "../lib/applications/state.ts";
 import { PARKED_STEPS, STAGING_FIXTURE_TENANT } from "../lib/applications/worker-protocol.ts";
 import { serveStagingFixture } from "./ats/greenhouse-fixture.ts";
-import { createTemplateManifest, DocumentRuntimeError, tailorDocument } from "./documents/runtime.ts";
+import { createTemplateManifest, DocumentRuntimeError, relevantAnchors, tailorDocument } from "./documents/runtime.ts";
 import { renderCoverLetter } from "./documents/cover-letter.ts";
 
 const ERROR_CODES = new Set([
@@ -215,7 +215,7 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
           id: artifactRequestId({ applicationId: lease.applicationId, sourceHash: source.sha256, anchorId: anchor.id, index }),
           confirmed: true as const, excerpt: anchor.text.slice(0, 1000),
         }));
-        const editableAnchors = [...template.anchors].sort((a, b) => b.maxChars - a.maxChars).slice(0, 5);
+        const editableAnchors = relevantAnchors(template.anchors, applicationContext.requirements.officialDescription);
         const generated = await context.generate({ task: "tailor", role: template.role,
           jobSummary: applicationContext.requirements.officialDescription.slice(0, 12_000),
           evidence: evidence.map(({ id, excerpt }) => ({ id, excerpt })),

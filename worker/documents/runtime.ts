@@ -31,6 +31,19 @@ export const TemplateManifestSchema = z.strictObject({
   pageGeometry: z.array(z.string().max(256)).max(100), frozenTextHash: hash, textHash: hash,
 });
 export type TemplateManifest = z.infer<typeof TemplateManifestSchema>;
+const STOPWORDS = new Set(['and', 'the', 'for', 'with', 'from', 'into', 'our', 'you', 'your', 'are', 'will', 'this', 'that', 'have', 'has', 'can', 'all', 'any', 'who', 'not', 'per', 'via']);
+const words = (text: string) => new Set((text.toLowerCase().match(/[a-z][a-z0-9+#.]{2,}/g) ?? [])
+  .map(word => word.replace(/\.+$/, '')).filter(word => !STOPWORDS.has(word)));
+/**
+ * The lines a posting's tailoring rewrites: of the resume's longest lines (its bullets), those sharing the most
+ * words with the job description, so a backend role and an ML role rewrite different bullets. Ties keep the longer line.
+ */
+export function relevantAnchors<T extends { text: string; maxChars: number }>(anchors: readonly T[], jobDescription: string, count = 5, pool = 10) {
+  const job = words(jobDescription), score = (anchor: T) => [...words(anchor.text)].filter(word => job.has(word)).length;
+  return [...anchors].sort((a, b) => b.maxChars - a.maxChars).slice(0, pool)
+    .map(anchor => ({ anchor, score: score(anchor) })).sort((a, b) => b.score - a.score || b.anchor.maxChars - a.anchor.maxChars)
+    .slice(0, count).map(item => item.anchor);
+}
 export const TailorEvidenceSchema = z.strictObject({ id: uuid, confirmed: z.literal(true), excerpt: z.string().trim().min(1).max(1000) });
 export const TailorEditSchema = z.strictObject({
   anchorId: z.string().regex(/^[a-z][a-z0-9-]{0,80}$/), replacement: z.string().trim().min(1).max(2000),
