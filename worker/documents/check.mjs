@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { zipSync, strToU8 } from 'fflate';
-import { createTemplateManifest, DocumentRuntimeError, tailorDocument } from './runtime.ts';
+import { createTemplateManifest, DocumentRuntimeError, relevantAnchors, tailorDocument } from './runtime.ts';
 
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const PDF = 'application/pdf';
@@ -117,4 +117,22 @@ test('a LaTeX PDF with subset CID fonts gets its bullet line rewritten in place'
   assert.doesNotMatch(text, /Designed onboarding flows/);
   assert.match(text, /• Built a design system with 40 components/, 'other lines are untouched');
   assert.deepEqual(tailored.checks, { pageCount: 1, linksPreserved: true, frozenTextPreserved: true, anchorsFit: true });
+});
+
+test('a posting rewrites the resume bullets that match it, not always the longest five', () => {
+  const line = (id, text) => ({ id, text, kind: 'line', maxChars: text.length });
+  const anchors = [
+    line('name', 'Dong Yeop Lee'),
+    line('ml', 'Trained PyTorch models on GPU clusters and evaluated inference latency for an embeddings service'),
+    line('api', 'Built REST APIs in FastAPI and PostgreSQL behind AWS ECS with CI/CD migration gates for deploys'),
+    line('web', 'Shipped a Next.js and React dashboard with TypeScript, Tailwind and Vitest component coverage'),
+    line('data', 'Wrote resumable S3 archiving jobs for 37,000 PDFs with pandas reports and retry checkpoints'),
+    line('infra', 'Ran Kubernetes and Docker builds in GitHub Actions and cut cold API latency from 516ms to 50ms'),
+    line('sim', 'Built a special relativity simulator in Python with numerical marker updates and plots'),
+  ];
+  const ids = job => relevantAnchors(anchors, job, 2).map(anchor => anchor.id);
+  assert.deepEqual(ids('Machine learning intern: PyTorch, GPU training, inference and embeddings on Kubernetes.'), ['ml', 'infra']);
+  assert.deepEqual(ids('Frontend intern: React, Next.js, TypeScript and Tailwind, talking to REST APIs.'), ['web', 'api']);
+  // The name line is never a bullet to rewrite, even when the posting shares none of the bullets' words.
+  assert.ok(!relevantAnchors(anchors, 'Nothing in common', 5, 6).some(anchor => anchor.id === 'name'));
 });

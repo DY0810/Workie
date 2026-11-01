@@ -370,17 +370,35 @@ export async function carryQuestions(tx: WorkerTx, ownerId: string, applicationI
   return lost;
 }
 
-async function reusableAnswer(tx: WorkerTx, row: QuestionRow, app: ApplicationRow, ctx: Context) {
+const wording = (q: QuestionDescriptor) => q.originalWording.toLowerCase().replace(/\s+/g, ' ').replace(/[\s*:?.]+$/, '').trim();
+/**
+ * A form question worded like one the applicant already answered on another application takes that answer, so
+ * "Are you 18 or older?" is asked once. Only choices, dates, numbers and short text carry over: an essay is never
+ * sent to a second employer unseen. A question naming its employer only matches that employer's forms.
+ */
+// "Have you worked here before?" or "Are you related to an employee?" is true of one employer, not the next.
+const employerFact = /\b(before|previously|prior|ever|relatives?|related|family)\b/;
+export const equivalentAnswer = (q: QuestionDescriptor, answer: Pick<AnswerRow, 'descriptor' | 'value'>) =>
+  q.key.startsWith('form-') && answer.descriptor.key.startsWith('form-') && q.kind === 'needs_answer' && !employerFact.test(wording(q)) &&
+  answer.descriptor.field.type === q.field.type && q.field.type !== 'textarea' && wording(answer.descriptor) === wording(q) &&
+  answer.value.type !== 'document' && (answer.value.type !== 'text' || answer.value.value.trim().length <= 60);
+// One read of the applicant's answers per question batch, newest first.
+const ANSWER_LOOKBACK = 1000;
+type Answers = () => Promise<AnswerRow[]>;
+async function reusableAnswer(tx: WorkerTx, row: QuestionRow, app: ApplicationRow, ctx: Context, owned: Answers) {
   if (!fresh(row, ctx) || !await canAnswer(tx, row, app, ctx)) return;
   // rowid breaks same-millisecond ties by committed insertion order, not random UUID order.
   const answers = await tx.select().from(questionAnswers).where(and(eq(questionAnswers.ownerId, ctx.ownerId),
     inArray(questionAnswers.applicationId, await attemptIds(tx, app)))).orderBy(desc(sql`rowid`));
   const hash = roleHash(row.descriptor);
-  for (const answer of answers) {
-    if (answer.reuse !== 'application' || roleHash(answer.descriptor) !== hash) continue;
-    if (answer.policyRevision !== ctx.policy.revision ||
-        hashValue(answer.factVersions) !== hashValue(row.factVersions) || !await answerValid(tx, row, answer.value, ctx)) return;
-    return answer;
+  const earlier = answers.find(answer => answer.reuse === 'application' && roleHash(answer.descriptor) === hash);
+  if (earlier) return earlier.policyRevision === ctx.policy.revision && hashValue(earlier.factVersions) === hashValue(row.factVersions) &&
+    await answerValid(tx, row, earlier.value, ctx) ? earlier : undefined;
+  // Form answers are sensitive: another form takes one only when the policy sends confirmed answers without asking each time.
+  if (!row.key.startsWith('form-') || ctx.policy.policy.disclosure !== 'confirmed_only') return;
+  for (const answer of await owned()) {
+    if (equivalentAnswer(row.descriptor, answer) && hashValue(answer.factVersions) === hashValue(row.factVersions) &&
+        await answerValid(tx, row, answer.value, ctx)) return answer;
   }
 }
 
@@ -406,6 +424,9 @@ export async function registerQuestionBatch(
     const ctx = await context(tx, worker.ownerId, options);
     if (command.expectedProfileRevision !== ctx.profile.revision) fail();
     const questionIds: string[] = [];
+    let loaded: Promise<AnswerRow[]> | undefined;
+    const priorAnswers: Answers = () => loaded ??= tx.select().from(questionAnswers).where(eq(questionAnswers.ownerId, worker.ownerId))
+      .orderBy(desc(sql`rowid`)).limit(ANSWER_LOOKBACK);
     for (const descriptor of command.questions) {
       const facts = factVersions(descriptor, ctx), semantic = semanticHash(descriptor);
       if (descriptor.scope.ats !== app.ats || descriptor.scope.tenant !== app.tenant ||
@@ -431,7 +452,7 @@ export async function registerQuestionBatch(
         .where(and(qScope(worker.ownerId, old.id), eq(questions.revision, old.revision))).returning());
       else row = one(await tx.insert(questions).values({ ...values, id: randomUUID(), ownerId: worker.ownerId,
         applicationId, key: descriptor.key, createdAt: now }).returning());
-      const reusable = rejected ? undefined : await reusableAnswer(tx, row, app, ctx);
+      const reusable = rejected ? undefined : await reusableAnswer(tx, row, app, ctx, priorAnswers);
       const optional = !rejected && !descriptor.required && (descriptor.field.allowBlank || descriptor.field.declineValue !== null) &&
         allowOptional(descriptor, ctx) && await canAnswer(tx, row, app, ctx);
       if (reusable || optional) {
