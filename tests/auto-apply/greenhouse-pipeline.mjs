@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { chromium } from 'playwright';
 import { createBrowserRuntime } from '../../worker/browser.ts';
-import { FIXTURE_FORM, fixtureConfirmation } from '../../worker/ats/greenhouse-fixture.ts';
+import { FIXTURE_FORM, HEARD, fixtureConfirmation } from '../../worker/ats/greenhouse-fixture.ts';
 import { createStageDispatch } from '../../worker/main.ts';
 import { ProviderError } from '../../worker/providers.ts';
 import { artifactManifestHash } from '../../lib/applications/artifact-protocol.ts';
@@ -41,7 +41,7 @@ function masterDocx() {
 const FORM = FIXTURE_FORM;
 const CONFIRMATION = fixtureConfirmation(JOB);
 
-test('Greenhouse pipeline tailors the resume, asks only the new question, writes a cover letter and stores the exact receipt',
+test('Greenhouse pipeline tailors the resume, asks only the new questions, writes a cover letter and stores the exact receipt',
   { skip: !browserReady || !toolsReady }, async () => {
     const directory = await mkdtemp(join(tmpdir(), 'workie-pipeline-'));
     const applicationId = randomUUID(), runId = randomUUID(), master = masterDocx();
@@ -170,14 +170,18 @@ test('Greenhouse pipeline tailors the resume, asks only the new question, writes
       const tailored = strFromU8(unzipSync(stored.get(context.documents.resume.documentId))['word/document.xml']);
       assert.ok(tailored.includes(TAILORED) && !tailored.includes(ORIGINAL));
 
-      // Only the role-specific narrative is new; profile facts answer LinkedIn, authorization and sponsorship.
+      // Only the role-specific narrative and how they heard of the job are new; profile facts answer LinkedIn, authorization and sponsorship.
       const asked = await stage('filling');
       assert.equal(asked.kind, 'questions');
-      assert.deepEqual(asked.questions.map(item => item.originalWording), ['Why are you interested in Fixture Co?']);
+      assert.deepEqual(asked.questions.map(item => item.originalWording), ['Why are you interested in Fixture Co?', 'How did you hear about this job?']);
+      assert.equal(asked.questions[0].field.type, 'textarea', 'a form textarea is asked as one');
+      assert.equal(asked.questions[1].field.type, 'select', 'a native dropdown is asked as a choice');
+      assert.deepEqual(asked.questions[1].field.options.map(option => option.label), HEARD, 'with every option and no blank one');
       // The form waiting on the applicant's answers keeps its last picture, so Live shows what they are answering.
       assert.ok(calls.live.at(-1).image?.length > 1000, 'the form waiting on answers keeps its picture');
       assert.equal(calls.live.at(-1).step, 'Waiting for your answers');
-      context.answers[asked.questions[0].key] = NARRATIVE; // the inbox answer, as the server returns it
+      context.answers[asked.questions[0].key] = NARRATIVE; // the inbox answers, as the server returns them
+      context.answers[asked.questions[1].key] = 'University career fair';
 
       // A profile edit since screening that re-screening cannot settle is asked, not parked with nothing to answer.
       const authorization = context.facts.workAuthorization;
@@ -205,8 +209,9 @@ test('Greenhouse pipeline tailors the resume, asks only the new question, writes
       // The applicant changes two answers in review, one the inbox gave and one from the profile; the server hands them back
       // in the context under each row's question key (see setReviewEdits), and Apply types them in.
       const row = label => review.find(field => field.label === label);
-      assert.equal(row('Why are you interested in Fixture Co?').kind, 'text');
+      assert.equal(row('Why are you interested in Fixture Co?').kind, 'textarea');
       assert.equal(row('Resume/CV').kind, 'file');
+      assert.deepEqual([row('How did you hear about this job?').kind, row('How did you hear about this job?').options], ['select', HEARD]);
       const EDITED = 'I use Fixture Co tools every week and want to make them faster.', LINKEDIN = 'https://linkedin.com/in/edited';
       context.answers[row('Why are you interested in Fixture Co?').key] = EDITED;
       context.answers[row('LinkedIn Profile').key] = LINKEDIN;
@@ -228,7 +233,7 @@ test('Greenhouse pipeline tailors the resume, asks only the new question, writes
       assert.equal(calls.receipt.evidence.pageUrl, `${URL_BASE}${JOB}/confirmation`);
       const { fields, files } = calls.captured;
       assert.deepEqual(fields, { first_name: 'Test', last_name: 'Applicant', email: 'test@example.com', phone: '(415) 555-0123', country: '+1',
-        question_101: LINKEDIN, question_102: 'Yes', question_103: 'No', question_104: EDITED });
+        question_101: LINKEDIN, question_102: 'Yes', question_103: 'No', question_104: EDITED, question_105: 'University career fair' });
       assert.equal(sha256(Buffer.from(files.resume.base64, 'base64')), context.tailoredArtifact.outputHash, 'the tailored resume is the one submitted');
       assert.match(files.resume.name, /^TestApplicant_Resume\.(docx|pdf)$/, 'the employer receives the resume under the applicant\'s name');
       assert.equal(calls.letter.at(-1).jobSummary, JD);

@@ -530,14 +530,13 @@ export async function main(args = process.argv.slice(2)) {
       return workerTransport({ origin, token: credential.workerToken, allowLoopback });
     };
     const setup: WorkerSetup = async (control, signal) => {
-      let providerConfig;
-      try { providerConfig = await control.providerConfig(signal); }
+      try { await control.providerConfig(signal); }
       catch (error) {
         // Older control-v1 servers fail closed to deterministic execution until upgraded.
         if (!(error instanceof TransportError) || error.status !== 404) throw error;
         return {};
       }
-      if (!providerConfig.enabled) return {};
+      // Built even while the provider is off: generate re-reads the config, so enabling it later needs no restart.
       const providerStore = await privateStore(directory, { ...scope, workerId: `${scope.workerId}:provider` });
       const configuredForChecked = async (current: ProviderConfig, checkSignal?: AbortSignal) => {
         const provider = current.enabled ? createConfiguredStructuredProvider(scope, current, providerStore, backend) : undefined;

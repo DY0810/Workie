@@ -139,7 +139,7 @@ function AnswerInput({ question: q, edit, change, documents }: {
   return <div className={styles.field}>
     {/* The question already shows as this item's heading; the label stays for screen readers. */}
     <label htmlFor={id} className="sr-only">{q.descriptor.originalWording}</label>
-    {field.type === 'textarea' ? <textarea id={id} value={edit.input} required rows={4}
+    {field.type === 'textarea' ? <textarea id={id} value={edit.input} required
       minLength={field.minLength} maxLength={field.maxLength} onChange={(event) => change({ input: event.target.value })} /> :
       field.type === 'select' ? <select id={id} required value={edit.input} onChange={(event) => change({ input: event.target.value })}>
         <option value="">Choose...</option>

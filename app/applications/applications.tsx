@@ -52,13 +52,14 @@ type Material = z.infer<typeof MaterialsSchema>['materials'][number];
 type Frame = z.infer<typeof LiveListSchema>['live'][number];
 const initialView: View = { account: null, workers: null, runs: null, discovery: [], policy: null, materials: [], live: [], loading: true, locked: true, error: '', loadedAt: 0 };
 
+/** A dropped connection, timeout, rate limit or outage: the page keeps what it shows and the next refresh retries. */
+class Passing extends Error {}
 async function request(path: string, owner?: string) {
   try {
     return await privateJson(path, { owner, timeout: 15_000 });
   } catch (error) {
-    if (!(error instanceof PrivateRequestError)) throw error;
-    throw new Error(error.status === 401 ? 'Unlock Workie to view private applications.' :
-      error.status === 403 ? 'Applicant access denied.' : 'Private application status is unavailable.');
+    if (!(error instanceof PrivateRequestError) || (error.status !== 401 && error.status !== 403)) throw new Passing('Private application status is unavailable.');
+    throw new Error(error.status === 401 ? 'Unlock Workie to view private applications.' : 'Applicant access denied.');
   }
 }
 
@@ -121,7 +122,7 @@ function ReviewEditor({ field, onSave, onCancel }: { field: Field; onSave: (edit
         ? <select id={id} value={typeof draft === 'string' ? draft : ''} onChange={(event) => setDraft(event.target.value)}>
             {!field.options.includes(String(draft)) && <option value="">Choose one</option>}
             {field.options.map((option) => <option key={option}>{option}</option>)}</select>
-        : <textarea id={id} rows={Math.min(8, Math.max(2, Math.ceil(String(draft).length / 60)))} maxLength={4000} value={String(draft)}
+        : <textarea id={id} maxLength={4000} value={String(draft)}
             onChange={(event) => setDraft(event.target.value)} />;
   return <form className={styles.reviewEdit} onSubmit={(event) => { event.preventDefault(); if (!empty) void save(typeof draft === 'string' ? draft.trim() : draft); }}>
     <label className={styles.muted} htmlFor={id}>New answer</label>
@@ -135,7 +136,7 @@ function ReviewEditor({ field, onSave, onCancel }: { field: Field; onSave: (edit
   </form>;
 }
 
-/** What the worker typed into each field, and the filled form as it looked, for review before Apply. Any answer but a file can be changed. */
+/** What the worker typed into each field, for review before Apply. Any answer but a file can be changed. */
 function FilledReview({ frame, ownerId, onSaved }: { frame: Frame | undefined; ownerId: string; onSaved: (fields: Field[]) => void }) {
   const [editing, setEditing] = useState<string | null>(null);
   if (!frame?.fields?.length) return <p className={styles.muted}>This form was filled before Workie kept a copy of the answers. Open the job post to compare, or retry to fill it again.</p>;
@@ -144,22 +145,16 @@ function FilledReview({ frame, ownerId, onSaved }: { frame: Frame | undefined; o
       method: 'POST', owner: ownerId, timeout: 30_000, body: JSON.stringify({ edits: { [key]: edit } }) }));
     onSaved(ack.fields); setEditing(null);
   };
-  return <>
-    <details open><summary className={styles.muted}>Filled answers ({frame.fields.length})</summary>
-      <dl className={styles.review}>{frame.fields.map((field, index) => <div key={field.key ?? index}><dt>{field.label}</dt><dd>
-        {editing === field.key && field.key ? <ReviewEditor field={field} onSave={save(field.key)} onCancel={() => setEditing(null)} /> : <>
-          {shown(field)}
-          {field.edit !== undefined && <span className={styles.muted}>{'\n'}Changed by you. Workie types this in when you press Apply.</span>}
-          {field.key && field.kind !== 'file' && <>{' '}<button className={styles.button} type="button" onClick={() => setEditing(field.key!)}
-            aria-label={`Change the answer to ${field.label}`}>Change</button></>}
-        </>}
-      </dd></div>)}</dl>
-    </details>
-    {frame.image && <details><summary className={styles.muted}>Filled form</summary>
-      {/* eslint-disable-next-line @next/next/no-img-element -- a private data URL, not an optimizable asset */}
-      <img className={styles.screen} src={`data:image/jpeg;base64,${frame.image}`} alt="The filled application form in Workie's browser" />
-    </details>}
-  </>;
+  return <details open><summary className={styles.muted}>Filled answers ({frame.fields.length})</summary>
+    <dl className={styles.review}>{frame.fields.map((field, index) => <div key={field.key ?? index}><dt>{field.label}</dt><dd>
+      {editing === field.key && field.key ? <ReviewEditor field={field} onSave={save(field.key)} onCancel={() => setEditing(null)} /> : <>
+        {shown(field)}
+        {field.edit !== undefined && <span className={styles.muted}>{'\n'}Changed by you. Workie types this in when you press Apply.</span>}
+        {field.key && field.kind !== 'file' && <>{' '}<button className={styles.button} type="button" onClick={() => setEditing(field.key!)}
+          aria-label={`Change the answer to ${field.label}`}>Change</button></>}
+      </>}
+    </dd></div>)}</dl>
+  </details>;
 }
 
 const ago = (ms: number) => {
@@ -168,11 +163,10 @@ const ago = (ms: number) => {
 };
 
 /** One application the worker is on, or one waiting on the applicant: its newest step and what its browser shows, refreshed every few seconds. */
-function LiveCard({ app, frame, role, asked, questions, ownerId, onAnswer, onDone }: {
-  app: App; frame: Frame | undefined; role: string | null | undefined; asked: QuestionDetail[];
-  questions: ReturnType<typeof useQuestions>; ownerId: string; onAnswer: () => void; onDone: () => void;
+function LiveCard({ app, frame, company, role, asked, questions, ownerId, onAnswer, onDone, onSaved }: {
+  app: App; frame: Frame | undefined; company: string; role: string | null | undefined; asked: QuestionDetail[];
+  questions: ReturnType<typeof useQuestions>; ownerId: string; onAnswer: () => void; onDone: () => void; onSaved: (fields: Field[]) => void;
 }) {
-  const company = app.company ?? app.tenant;
   const href = postingUrl(app.ats, app.tenant, app.requisition);
   const approval = isAwaitingSubmitApproval(app.state, app.reasonCode);
   const watching = isWatching(app, frame, Date.now());
@@ -218,13 +212,16 @@ function LiveCard({ app, frame, role, asked, questions, ownerId, onAnswer, onDon
             {questions.view.error && <p role="alert" className={styles.message}>{questions.view.error}</p>}
             <ApplicationQuestions applicationId={app.id} view={questions.view} control={questions.control} />
           </>}
-          {frame?.fields?.length ? <details open={!asked.length}><summary className={styles.muted}>Filled answers ({frame.fields.length})</summary>
+          {approval ? <FilledReview frame={frame} ownerId={ownerId} onSaved={onSaved} />
+            : frame?.fields?.length ? <details open={!asked.length}><summary className={styles.muted}>Filled answers ({frame.fields.length})</summary>
             <dl className={styles.review}>{frame.fields.map((field, index) => <div key={index}><dt>{field.label}</dt><dd>{shown(field)}</dd></div>)}</dl>
           </details> : !asked.length && <p className={styles.muted}>The answers Workie fills show here.</p>}
           <div className={styles.actions}>{apply}</div>
         </div>}
       </div>
     </div>
+    {/* A form waiting for Apply takes answer changes right on the card; full screen shows them in its side panel instead. */}
+    {approval && !full && <FilledReview frame={frame} ownerId={ownerId} onSaved={onSaved} />}
     <div className={styles.actions}>
       <button className={styles.button} type="button" onClick={() => setFull(true)}>Full screen</button>
       {href && <a className={styles.button} href={href} target="_blank" rel="noopener noreferrer">Open job post</a>}
@@ -448,15 +445,19 @@ export default function Applications() {
       }
       const running = runs.runs.filter((run) => run.state === 'running');
       // Discovery status follows the list, so a slow status read never holds the page back.
-      setView((current) => ({ account, workers, runs, policy, materials: materials?.materials ?? [], live: live?.live ?? [],
+      // A list that failed to load keeps the one shown, unless the applicant changed.
+      setView((current) => { const kept = current.account?.ownerId === account.ownerId; return { account, workers, runs, policy,
+        materials: materials?.materials ?? (kept ? current.materials : []), live: live?.live ?? (kept ? current.live : []),
         discovery: current.discovery.filter((status) => status.ownerId === account.ownerId && running.some((run) => run.id === status.runId)),
-        loading: false, locked: false, error: '', loadedAt: Date.now() }));
+        loading: false, locked: false, error: '', loadedAt: Date.now() }; });
       const discovery = (await Promise.all(running.map((run) =>
         request(`/api/application-runs/${run.id}/discovery`, account.ownerId).then((body) => DiscoveryStatusSchema.parse(body)).catch(() => null))))
         .flatMap((status) => status?.ownerId === account.ownerId ? [status] : []);
       setView((current) => current.account?.ownerId === account.ownerId ? { ...current, discovery } : current);
     } catch (error) {
-      setView((current) => ({ ...current, loading: false, locked: true,
+      // shortcut: a first load that fails this way still shows the sign-in state; the next refresh unlocks it.
+      if (error instanceof Passing) setView((current) => current.account ? current : { ...current, loading: false, locked: true, error: error.message });
+      else setView((current) => ({ ...current, loading: false, locked: true,
         error: error instanceof z.ZodError ? 'Private service returned an incompatible response.' :
           error instanceof Error ? error.message : 'Private application status is unavailable.' }));
     }
@@ -510,6 +511,9 @@ export default function Applications() {
   // The row being filled right now first.
   lists.live.sort((a, b) => Number(FORM_STATES.includes(b.state)) - Number(FORM_STATES.includes(a.state)));
   const frames = new Map(view.live.map((frame) => [frame.applicationId, frame]));
+  /** The answers the server holds after a change in review, until the next frame poll brings them. */
+  const savedFields = (id: string) => (fields: Field[]) => setView((current) => ({ ...current,
+    live: current.live.map((frame) => frame.applicationId === id ? { ...frame, fields } : frame) }));
   lists.action.sort((a, b) => waitRank(a) - waitRank(b));
   const counts = new Map<string, { tone: BadgeTone; count: number }>();
   for (const app of lists.action) {
@@ -523,7 +527,10 @@ export default function Applications() {
   const caps = view.policy?.policy;
   const materials = new Map(view.materials.map((item) => [item.applicationId, item]));
   const asked = openQuestions(questions.view.inbox?.items ?? []);
-  const questionRole = new Map((questions.view.inbox?.items ?? []).flatMap((item) => item.question ? [[item.applicationId, item.question.application.role] as const] : []));
+  // A row names its employer and role once a submission does; before that, the questions the worker asked name them.
+  // shortcut: a row that asked nothing still shows the tenant until submitted; have ApplicationSummary carry company/role if that matters.
+  const asking = new Map((questions.view.inbox?.items ?? []).flatMap((item) => item.question ? [[item.applicationId, item.question.application] as const] : []));
+  const companyOf = (app: App) => app.company ?? asking.get(app.id)?.company ?? app.tenant;
 
   const open = dialog && applications.find((app) => app.id === dialog.id);
   const answering = dialog?.open && dialog.kind === 'answer';
@@ -580,12 +587,12 @@ export default function Applications() {
       </nav>
       {tab === 'archived' && <p className={`${styles.message} ${styles.muted}`}>Archived items are removed 30 days after archiving.</p>}
       {tab === 'live' && lists.live.length > 0 && <ul className={styles.liveCards} aria-label="Live">
-        {lists.live.map((app) => <LiveCard key={app.id} app={app} frame={frames.get(app.id)} role={app.role ?? questionRole.get(app.id)}
+        {lists.live.map((app) => <LiveCard key={app.id} app={app} frame={frames.get(app.id)} company={companyOf(app)} role={app.role ?? asking.get(app.id)?.role}
           asked={asked.get(app.id) ?? []} questions={questions} ownerId={ownerId} onDone={reload} onAnswer={() => {
             const here = asked.get(app.id) ?? [];
             if (here.length === 1) void questions.control?.select(here[0]);
             setDialog({ kind: 'answer', id: app.id, open: true });
-          }} />)}
+          }} onSaved={savedFields(app.id)} />)}
       </ul>}
       {tab === 'live' && lists.live.length > 0 ? null : !lists[tab].length ? <p className={`${styles.message} ${styles.muted}`}>{tab === 'action' && !applications.length
         ? 'No applications yet. Start auto apply from Settings after enabling a policy.' : EMPTY[tab]}</p> :
@@ -601,8 +608,8 @@ export default function Applications() {
             const retryable = resumable(app, runs) || RESTARTABLE.includes(app.state) || restartable;
             const material = materials.get(app.id);
             const href = postingUrl(app.ats, app.tenant, app.requisition);
-            const company = app.company ?? app.tenant;
-            const role = app.role ?? questionRole.get(app.id);
+            const company = companyOf(app);
+            const role = app.role ?? asking.get(app.id)?.role;
             // Screening skips again until the profile changes, so Retry is not the suggested next step there.
             const primary = !live ? null : questionsHere.length ? 'answer' : upload ? 'upload' : approval ? 'approve'
               : retryable && !skipReasons(app).length ? 'retry' : null;
@@ -660,7 +667,7 @@ export default function Applications() {
           })}
         </ul>}
     </>}
-    <Modal open={!!open && dialog!.open} onClose={close} title={open ? `${DIALOG_TITLES[dialog!.kind]} / ${open.company ?? open.tenant}` : ''}
+    <Modal open={!!open && dialog!.open} onClose={close} title={open ? `${DIALOG_TITLES[dialog!.kind]} / ${companyOf(open)}` : ''}
       footer={open && dialog!.kind === 'upload' ? <Command label="Retry" busyLabel="Retrying..." primary run={() => retry(open, runs, ownerId)} onDone={done} />
         : open && dialog!.kind === 'approve' ? <Command label="Apply" busyLabel="Applying..." primary
           confirm="Submit this application to the employer now? This cannot be undone." run={() => approve(open, ownerId)} onDone={done} />
@@ -677,8 +684,11 @@ export default function Applications() {
       {open && dialog!.kind === 'approve' && <>
         <p className={styles.issue}>Form filled. Review what Workie entered, the resume and cover letter, then press Apply to submit.
           Change any answer below first: Workie fills the form again with your changes when you press Apply, so the picture shows what it filled before.</p>
-        <FilledReview frame={frames.get(open.id)} ownerId={ownerId} onSaved={(fields) => setView((current) => ({ ...current,
-          live: current.live.map((frame) => frame.applicationId === open.id ? { ...frame, fields } : frame) }))} />
+        <FilledReview frame={frames.get(open.id)} ownerId={ownerId} onSaved={savedFields(open.id)} />
+        {frames.get(open.id)?.image && <details><summary className={styles.muted}>Filled form</summary>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a private data URL, not an optimizable asset */}
+          <img className={styles.screen} src={`data:image/jpeg;base64,${frames.get(open.id)!.image}`} alt="The filled application form in Workie's browser" />
+        </details>}
         {materials.get(open.id) && <MaterialsPanel item={materials.get(open.id)!} />}
       </>}
       {open && dialog!.kind === 'materials' && materials.get(open.id) && <MaterialsPanel item={materials.get(open.id)!} />}

@@ -745,7 +745,7 @@ test('the Ashby fixture is observed, answered from the profile and the inbox, fi
       { key: observed.fields[0].key, kind: 'text', required: true, options: undefined },
       { key: observed.fields[1].key, kind: 'email', required: true, options: undefined },
       { key: 'resume', kind: 'file', required: true, options: undefined },
-      { key: observed.fields[3].key, kind: 'text', required: true, options: undefined },
+      { key: observed.fields[3].key, kind: 'textarea', required: true, options: undefined },
       { key: observed.fields[4].key, kind: 'radio', required: true, options: ['Yes', 'No'] },
       { key: observed.fields[5].key, kind: 'radio', required: true, options: ['Yes', 'No'] },
       { key: observed.fields[6].key, kind: 'select', required: true, options: ['Product', 'Infra', 'AI'] },
@@ -883,7 +883,7 @@ test('a Lever form is observed, answered from the profile, filled, submitted and
       ['resume', 'file', true, undefined, false], ['name', 'text', true, undefined, false], ['email', 'email', true, undefined, false],
       ['location', 'text', true, undefined, false], ['urls[LinkedIn]', 'text', false, undefined, false],
       ['cards[c1][field0]', 'radio', true, ['English', 'Korean', 'French'], true], ['cards[c1][field1]', 'radio', true, ['Yes', 'No'], false],
-      ['cards[c1][field2]', 'text', true, undefined, false], ['eeo[gender]', 'select', false, ['Male', 'Female'], false],
+      ['cards[c1][field2]', 'textarea', true, undefined, false], ['eeo[gender]', 'select', false, ['Male', 'Female'], false],
       ['eeo[veteran]', 'select', false, ['I am not a veteran'], false]]);
     // The veteran wording differs from the profile's, so it is left blank rather than guessed.
     assert.deepEqual(observation.fields.map(field => lever.answer(input, field)),

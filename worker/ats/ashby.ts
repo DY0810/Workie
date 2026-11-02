@@ -72,7 +72,7 @@ async function formFields(page: Page): Promise<AtsField[]> {
     const kind = has('input[type=file]') ? 'file' : has('.ashby-application-form-input-yesno') ? 'yesno' :
       has('.ashby-application-form-input-radio-group') ? 'radio' : has('.ashby-application-form-input-checkbox-group') ? (group.length === 1 ? 'checkbox' : 'multi') :
         has('select') ? 'select' : has('.ashby-application-form-input-autocomplete') ? 'combobox' : has('.ashby-application-form-input-date') ? 'date' :
-          has('input[type=email]') ? 'email' : has('input.ashby-application-form-input-text, textarea.ashby-application-form-input-textarea') ? 'text' : null;
+          has('input[type=email]') ? 'email' : has('textarea.ashby-application-form-input-textarea') ? 'textarea' : has('input.ashby-application-form-input-text') ? 'text' : null;
     const title = (label.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 1000);
     // A heading-only title ("Applicant Arbitration Agreement Acknowledgement") keeps its question in the description and checkbox sentence.
     const description = [...labels('.ashby-application-form-question-description'), ...(kind === 'checkbox' ? group : [])]
