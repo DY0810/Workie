@@ -313,7 +313,7 @@ async function ownedContext(tx: WorkerTx, worker: WorkerRow, lease: { applicatio
       return ApplicationContextSchema.parse({
         protocolVersion: 1, applicationId: checked.id, runId: checked.runId, ownerId: worker.ownerId,
         policyRevision: run.policyRevision, profileRevision: profileResponse.revision, identity: candidate.identity, company: official.company, role: official.title,
-        coverLetterAllowed: policy.policy.documentKinds.includes('cover_letter'), letter: await savedLetter(tx, worker.ownerId, checked.id),
+        coverLetterAllowed: policy.policy.documentKinds.includes('cover_letter'), submitWithoutReview: policy.policy.actions.includes('submit_without_review'), letter: await savedLetter(tx, worker.ownerId, checked.id),
         track: policy.policy.filters.tab,
         applicationUrl: candidate.officialUrl, facts, requirements, answers, documents: documentsByKey,
         tailoredArtifact: { documentId: saved.document.id, version: saved.document.version, sourceDocumentId: selectedDocument.id,
@@ -326,7 +326,7 @@ async function ownedContext(tx: WorkerTx, worker: WorkerRow, lease: { applicatio
   return ApplicationContextSchema.parse({
     protocolVersion: 1, applicationId: checked.id, runId: checked.runId, ownerId: worker.ownerId,
     policyRevision: run.policyRevision, profileRevision: profileResponse.revision, identity: candidate.identity, company: official.company, role: official.title,
-    coverLetterAllowed: policy.policy.documentKinds.includes('cover_letter'), letter: await savedLetter(tx, worker.ownerId, checked.id),
+    coverLetterAllowed: policy.policy.documentKinds.includes('cover_letter'), submitWithoutReview: policy.policy.actions.includes('submit_without_review'), letter: await savedLetter(tx, worker.ownerId, checked.id),
     track: policy.policy.filters.tab,
     applicationUrl: candidate.officialUrl, facts, requirements, answers, documents: documentsByKey,
     tailoredArtifact: null, manifestHash: null, artifactHashes: [], createdAt: now,

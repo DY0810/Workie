@@ -248,6 +248,13 @@ test('Greenhouse pipeline tailors the resume, asks only the new question, writes
       assert.deepEqual(await unconfirmed, { state: 'submission_unknown', reasonCode: 'receipt_persistence_failed', durable: true });
       assert.deepEqual(kept, [calls.receipt]);
 
+      // Submitting without review never covers a form with a letter or an answer longer than a line.
+      context.submitWithoutReview = true;
+      assert.deepEqual(await stage('filling'), { state: 'needs_policy_decision', reasonCode: 'submit_approval' });
+      // A form of short answers and no letter goes on to submit without the Apply click.
+      context.coverLetterAllowed = false; context.answers[asked.questions[0].key] = 'Because I use it';
+      assert.deepEqual(await stage('filling'), { state: 'ready', reasonCode: 'form_verified', evidence: { formVerified: true } });
+
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

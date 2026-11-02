@@ -2,7 +2,7 @@ import 'server-only';
 import { and, eq } from 'drizzle-orm';
 import type { PrivateDb } from '../private-db/index.ts';
 import { applicationEvents, applications } from '../private-db/schema.ts';
-import { hashValue } from './stores.ts';
+import { getPolicy, hashValue } from './stores.ts';
 import { canTransition, isTerminalState, isWaitingState } from './state.ts';
 import { EventRequestSchema, type EventRequest, type EventResponse } from './worker-protocol.ts';
 import { checkedLease } from './leases.ts';
@@ -28,6 +28,11 @@ export async function recordWorkerEvent(
     if (app instanceof WorkerError) return app;
     if (!canTransition(app.state, command.state, command.evidence ?? {})) {
       fail(409, 'EXECUTION_DISABLED', 'Transition requires unavailable execution evidence.');
+    }
+    // A filled form waits for the applicant's Apply unless the policy lets it go out unreviewed.
+    if (app.state === 'filling' && command.state === 'ready') {
+      const policy = await getPolicy(tx, worker.ownerId, now);
+      if (!policy.enabled || !policy.policy.actions.includes('submit_without_review')) fail(403, 'SUBMIT_DISABLED', 'Submitting without review is not enabled in the policy.');
     }
     // A submission the worker could not confirm releases like a hold, naming why; it started from ready, so the checkpoint stays there.
     const release = isWaitingState(command.state) || isTerminalState(command.state) || command.state === 'submission_unknown';

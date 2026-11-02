@@ -52,6 +52,8 @@ const ERROR_CODES = new Set([
   "REMOTE_PROVIDER_ENDPOINT_INVALID", "STAGE_TIMEOUT",
 ]);
 
+// Longer answers read as free text, which the applicant reviews before it goes out in their name.
+const SHORT_ANSWER_CHARS = 60;
 const PROVIDER_CAPABILITY_CACHE = "provider-capability";
 const PROVIDER_CAPABILITY_TTL_MS = 24 * 60 * 60_000;
 const CapabilityCacheSchema = z.strictObject({
@@ -361,6 +363,9 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
           // An optional field Workie had no answer for is listed too, so the applicant sees it went in empty.
           return { label: field.label.slice(0, 1000), value: text ? text.slice(0, 4000) : 'Left blank' };
         }).slice(0, 64);
+        // A form of short answers and no letter goes out unreviewed when the policy allows it; anything longer waits for Apply.
+        const short = observed.fields.every(field => field.kind === 'file' || String(adapter.answer(currentApplication, field) ?? '').length <= SHORT_ANSWER_CHARS);
+        if (applicationContext.submitWithoutReview && !letter && short) return { state: "ready" as const, reasonCode: "form_verified", evidence: { formVerified: true } };
         // Nothing is submitted until the applicant reviews the filled form, resume and letter and approves it.
         return { state: "needs_policy_decision" as const, reasonCode: SUBMIT_APPROVAL };
       }
