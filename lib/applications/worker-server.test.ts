@@ -1052,3 +1052,41 @@ describe('a policy change the applicant enables', () => {
     expect(await claim(worker.token)).toMatchObject({ applicationId: app.id, state: 'ready' });
   });
 });
+describe('reads Turso bills per row', () => {
+  /** Every statement the client sends, so the test explains the real SQL rather than a copy of it. */
+  function record(target: PrivateDb) {
+    const seen: { sql: string; args: never }[] = [];
+    type Exec = (stmt: unknown, args?: unknown) => unknown;
+    const tap = (client: { execute: Exec }) => {
+      const execute = client.execute.bind(client);
+      client.execute = (stmt, args) => {
+        seen.push(typeof stmt === 'string' ? { sql: stmt, args: (args ?? []) as never } : stmt as { sql: string; args: never });
+        return execute(stmt, args);
+      };
+    };
+    const client = target.$client as unknown as { execute: Exec; transaction: (mode: unknown) => Promise<{ execute: Exec }> };
+    tap(client);
+    const transaction = client.transaction.bind(client);
+    client.transaction = async (mode) => { const tx = await transaction(mode); tap(tx); return tx; };
+    return seen;
+  }
+  it('the worker poll and the board seek private_application, never walk it', async () => {
+    const policy: Policy = { ...createEmptyPolicy(), actions: ['read_jobs'], destinations: ['boards.greenhouse.io'], countries: ['US'] };
+    const hash = hashValue(policy);
+    await db.insert(policyVersions).values({ ownerId: 'alice', version: 2, hash, policy, createdAt: now });
+    await db.update(policyHeads).set({ revision: 2, policyVersion: 2, acceptedPolicyVersion: 2, acceptedPolicyHash: hash }).where(eq(policyHeads.ownerId, 'alice'));
+    const { worker } = await prepared();
+    const seen = record(db);
+    await pollWorker(db, worker.token, { protocolVersion: 1 }, options);
+    await returnedPostingUrls(db);
+    const plans: string[] = [];
+    for (const { sql: text, args } of seen.filter(({ sql: text }) => /^\s*select\b[\s\S]*"private_application"/i.test(text))) {
+      const { rows } = await other.$client.execute({ sql: `explain query plan ${text}`, args });
+      plans.push(...rows.map((row) => String(row.detail)).filter((detail) => / private_application( |$)/.test(detail)));
+    }
+    expect(plans.join('\n')).toContain('private_application_started (owner_id=? AND started_at>? AND started_at<?)');
+    expect(plans.join('\n')).toContain('USING INDEX private_application_worker_state (owner_id=? AND worker_id=? AND state=? AND available_at<?)');
+    expect(plans.join('\n')).toContain('USING INDEX private_application_by_state (state=?)');
+    expect(plans.filter((detail) => detail.startsWith('SCAN'))).toEqual([]);
+  });
+});

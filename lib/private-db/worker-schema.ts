@@ -107,6 +107,11 @@ export const applications = sqliteTable('private_application', {
   uniqueIndex('private_application_one_successor').on(t.ownerId, t.previousApplicationId),
   uniqueIndex('private_application_active_tenant').on(t.ownerId, t.ats, t.tenant).where(sql`${t.leaseUntil} is not null`),
   index('private_application_queue').on(t.ownerId, t.workerId, t.availableAt),
+  // Turso bills rows read: the poll seeks open states, not every finished row; capHeld seeks today's starts;
+  // the board's returned roles seek their stopped states.
+  index('private_application_worker_state').on(t.ownerId, t.workerId, t.state, t.availableAt),
+  index('private_application_started').on(t.ownerId, t.startedAt),
+  index('private_application_by_state').on(t.state),
   foreignKey({ columns: [t.ownerId, t.runId, t.workerId], foreignColumns: [applicationRuns.ownerId, applicationRuns.id, applicationRuns.workerId] }),
   check('private_application_state', sql.raw(`state in (${APPLICATION_STATES.map((s) => `'${s}'`).join(',')})`)),
   check('private_application_counters', sql`${t.revision} > 0 and ${t.fence} >= 0 and ${t.retries} between 0 and 3`),

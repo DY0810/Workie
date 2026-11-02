@@ -66,17 +66,18 @@ export async function createRun(db: PrivateDb, ownerId: string, input: RunCreate
   return result;
 }
 /**
- * A role that stopped again after a retry (same-row retry or a restarted attempt) goes back to the Jobs board, as does the
- * attempt a restart replaced. Neither is ever re-queued by discovery: its identity already has rows.
+ * A role that stopped again after a retry (same-row retry or a restarted attempt) goes back to the Jobs board, but not
+ * the attempt a restart replaced. Neither is ever re-queued by discovery: its identity already has rows.
+ * The state list is a top-level term so the board's lookup seeks `private_application_by_state` instead of every row.
  */
-const returnedToBoard = sql`(coalesce(${applications.reasonCode}, '') = 'restarted' or (${applications.state} in
-  ('failed', 'retryable_failure', 'blocked_unsupported', 'provider_unavailable', 'needs_document')
-  and (${applications.retries} > 0 or ${applications.attempt} > 1)))`;
+const returnedToBoard = and(
+  inArray(applications.state, ['failed', 'retryable_failure', 'blocked_unsupported', 'provider_unavailable', 'needs_document']),
+  sql`(${applications.retries} > 0 or ${applications.attempt} > 1)`, sql`${applications.reasonCode} is not 'restarted'`);
 
 /** Posting URLs, in `onlyOnBoard`'s lowercase form, of roles Auto Apply gave up on, for every applicant. */
 export async function returnedPostingUrls(db: PrivateDb): Promise<string[]> {
   const rows = await db.selectDistinct({ ats: applications.ats, tenant: applications.tenant, requisition: applications.requisition })
-    .from(applications).where(and(isNull(applications.hiddenAt), returnedToBoard, sql`${applications.reasonCode} is not 'restarted'`));
+    .from(applications).where(and(isNull(applications.hiddenAt), returnedToBoard));
   return rows.flatMap(({ ats, tenant, requisition }) => {
     const url = postingUrl(ats, tenant.toLowerCase(), requisition.toLowerCase());
     if (!url) return [];

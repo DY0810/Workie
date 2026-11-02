@@ -1,0 +1,4071 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "ef65e5d6-f2bc-4dac-ae1f-12aa0947b7ce",
+  "prevId": "db693f3c-cbee-4611-8203-31eea4abbb91",
+  "tables": {
+    "private_account": {
+      "name": "private_account",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_account_user_id_idx": {
+          "name": "private_account_user_id_idx",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_account_user_id_private_user_id_fk": {
+          "name": "private_account_user_id_private_user_id_fk",
+          "tableFrom": "private_account",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "private_application_artifact": {
+      "name": "private_application_artifact",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_document_id": {
+          "name": "source_document_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_version": {
+          "name": "source_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_hash": {
+          "name": "source_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "output_hash": {
+          "name": "output_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "manifest_hash": {
+          "name": "manifest_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "manifest": {
+          "name": "manifest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_artifact_owner_request_unique": {
+          "name": "private_artifact_owner_request_unique",
+          "columns": [
+            "owner_id",
+            "request_id"
+          ],
+          "isUnique": true
+        },
+        "private_artifact_owner_document_unique": {
+          "name": "private_artifact_owner_document_unique",
+          "columns": [
+            "owner_id",
+            "document_id"
+          ],
+          "isUnique": true
+        },
+        "private_artifact_owner_application_idx": {
+          "name": "private_artifact_owner_application_idx",
+          "columns": [
+            "owner_id",
+            "application_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_application_artifact_owner_id_private_user_id_fk": {
+          "name": "private_application_artifact_owner_id_private_user_id_fk",
+          "tableFrom": "private_application_artifact",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "private_application_artifact_owner_id_application_id_private_application_owner_id_id_fk": {
+          "name": "private_application_artifact_owner_id_application_id_private_application_owner_id_id_fk",
+          "tableFrom": "private_application_artifact",
+          "tableTo": "private_application",
+          "columnsFrom": [
+            "owner_id",
+            "application_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_application_artifact_owner_id_source_document_id_private_document_owner_id_id_fk": {
+          "name": "private_application_artifact_owner_id_source_document_id_private_document_owner_id_id_fk",
+          "tableFrom": "private_application_artifact",
+          "tableTo": "private_document",
+          "columnsFrom": [
+            "owner_id",
+            "source_document_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_application_artifact_owner_id_document_id_private_document_owner_id_id_fk": {
+          "name": "private_application_artifact_owner_id_document_id_private_document_owner_id_id_fk",
+          "tableFrom": "private_application_artifact",
+          "tableTo": "private_document",
+          "columnsFrom": [
+            "owner_id",
+            "document_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_artifact_source_version_check": {
+          "name": "private_artifact_source_version_check",
+          "value": "typeof(\"private_application_artifact\".\"source_version\") = 'integer' and \"private_application_artifact\".\"source_version\" > 0"
+        },
+        "private_artifact_hash_check": {
+          "name": "private_artifact_hash_check",
+          "value": "length(\"private_application_artifact\".\"source_hash\") = 64 and \"private_application_artifact\".\"source_hash\" not glob '*[^a-f0-9]*' and length(\"private_application_artifact\".\"output_hash\") = 64 and \"private_application_artifact\".\"output_hash\" not glob '*[^a-f0-9]*' and length(\"private_application_artifact\".\"manifest_hash\") = 64 and \"private_application_artifact\".\"manifest_hash\" not glob '*[^a-f0-9]*'"
+        },
+        "private_artifact_manifest_check": {
+          "name": "private_artifact_manifest_check",
+          "value": "json_valid(\"private_application_artifact\".\"manifest\") and length(cast(\"private_application_artifact\".\"manifest\" as blob)) <= 262144"
+        }
+      }
+    },
+    "private_application_event": {
+      "name": "private_application_event",
+      "columns": {
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "acknowledgement": {
+          "name": "acknowledgement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "private_application_event_owner_id_application_id_private_application_owner_id_id_fk": {
+          "name": "private_application_event_owner_id_application_id_private_application_owner_id_id_fk",
+          "tableFrom": "private_application_event",
+          "tableTo": "private_application",
+          "columnsFrom": [
+            "owner_id",
+            "application_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "private_application_event_owner_id_application_id_event_id_pk": {
+          "columns": [
+            "owner_id",
+            "application_id",
+            "event_id"
+          ],
+          "name": "private_application_event_owner_id_application_id_event_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_application_event_json": {
+          "name": "private_application_event_json",
+          "value": "json_valid(\"private_application_event\".\"acknowledgement\")"
+        }
+      }
+    },
+    "private_application_live": {
+      "name": "private_application_live",
+      "columns": {
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "step": {
+          "name": "step",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fields": {
+          "name": "fields",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "verification_code": {
+          "name": "verification_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "private_application_live_owner_id_application_id_pk": {
+          "columns": [
+            "owner_id",
+            "application_id"
+          ],
+          "name": "private_application_live_owner_id_application_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_application_live_fields_json": {
+          "name": "private_application_live_fields_json",
+          "value": "\"private_application_live\".\"fields\" is null or json_valid(\"private_application_live\".\"fields\")"
+        }
+      }
+    },
+    "private_application_receipt": {
+      "name": "private_application_receipt",
+      "columns": {
+        "intent_id": {
+          "name": "intent_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ats": {
+          "name": "ats",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tenant": {
+          "name": "tenant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "requisition": {
+          "name": "requisition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "company": {
+          "name": "company",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "receipt_id": {
+          "name": "receipt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "submitted_at": {
+          "name": "submitted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "evidence": {
+          "name": "evidence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_receipt_owner_application": {
+          "name": "private_receipt_owner_application",
+          "columns": [
+            "owner_id",
+            "application_id"
+          ],
+          "isUnique": true
+        },
+        "private_receipt_owner_receipt": {
+          "name": "private_receipt_owner_receipt",
+          "columns": [
+            "owner_id",
+            "ats",
+            "tenant",
+            "receipt_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "private_application_receipt_owner_id_application_id_private_application_owner_id_id_fk": {
+          "name": "private_application_receipt_owner_id_application_id_private_application_owner_id_id_fk",
+          "tableFrom": "private_application_receipt",
+          "tableTo": "private_application",
+          "columnsFrom": [
+            "owner_id",
+            "application_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_application_receipt_intent_id_private_application_submission_intent_id_fk": {
+          "name": "private_application_receipt_intent_id_private_application_submission_intent_id_fk",
+          "tableFrom": "private_application_receipt",
+          "tableTo": "private_application_submission",
+          "columnsFrom": [
+            "intent_id"
+          ],
+          "columnsTo": [
+            "intent_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_receipt_evidence": {
+          "name": "private_receipt_evidence",
+          "value": "json_valid(\"private_application_receipt\".\"evidence\") and length(cast(\"private_application_receipt\".\"evidence\" as blob)) <= 16384"
+        }
+      }
+    },
+    "private_application_run": {
+      "name": "private_application_run",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "worker_id": {
+          "name": "worker_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'running'"
+        },
+        "policy_revision": {
+          "name": "policy_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy_hash": {
+          "name": "policy_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "discovery_state": {
+          "name": "discovery_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'idle'"
+        },
+        "capture_token": {
+          "name": "capture_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "capture_until": {
+          "name": "capture_until",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "current_manifest_id": {
+          "name": "current_manifest_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_attempt_at": {
+          "name": "last_attempt_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_scan_at": {
+          "name": "last_scan_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "discovery_error": {
+          "name": "discovery_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_run_owner_id": {
+          "name": "private_run_owner_id",
+          "columns": [
+            "owner_id",
+            "id"
+          ],
+          "isUnique": true
+        },
+        "private_run_assignment": {
+          "name": "private_run_assignment",
+          "columns": [
+            "owner_id",
+            "id",
+            "worker_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "private_application_run_owner_id_private_user_id_fk": {
+          "name": "private_application_run_owner_id_private_user_id_fk",
+          "tableFrom": "private_application_run",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_application_run_owner_id_worker_id_private_worker_owner_id_id_fk": {
+          "name": "private_application_run_owner_id_worker_id_private_worker_owner_id_id_fk",
+          "tableFrom": "private_application_run",
+          "tableTo": "private_worker",
+          "columnsFrom": [
+            "owner_id",
+            "worker_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_application_run_owner_id_policy_version_private_policy_version_owner_id_version_fk": {
+          "name": "private_application_run_owner_id_policy_version_private_policy_version_owner_id_version_fk",
+          "tableFrom": "private_application_run",
+          "tableTo": "private_policy_version",
+          "columnsFrom": [
+            "owner_id",
+            "policy_version"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_run_state": {
+          "name": "private_run_state",
+          "value": "\"private_application_run\".\"state\" in ('running','paused','stopped') and \"private_application_run\".\"revision\" > 0 and \"private_application_run\".\"policy_revision\" > 0"
+        },
+        "private_run_discovery_state": {
+          "name": "private_run_discovery_state",
+          "value": "\"private_application_run\".\"discovery_state\" in ('idle','capturing','staging','ready','failed','abandoned')"
+        }
+      }
+    },
+    "private_application_submission": {
+      "name": "private_application_submission",
+      "columns": {
+        "intent_id": {
+          "name": "intent_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "worker_id": {
+          "name": "worker_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ats": {
+          "name": "ats",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tenant": {
+          "name": "tenant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "requisition": {
+          "name": "requisition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "company": {
+          "name": "company",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "manifest_hash": {
+          "name": "manifest_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "artifact_hashes": {
+          "name": "artifact_hashes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'intent'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "submitted_at": {
+          "name": "submitted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_submission_owner_application": {
+          "name": "private_submission_owner_application",
+          "columns": [
+            "owner_id",
+            "application_id"
+          ],
+          "isUnique": true
+        },
+        "private_submission_worker_state": {
+          "name": "private_submission_worker_state",
+          "columns": [
+            "owner_id",
+            "worker_id",
+            "state"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_application_submission_owner_id_private_user_id_fk": {
+          "name": "private_application_submission_owner_id_private_user_id_fk",
+          "tableFrom": "private_application_submission",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "private_application_submission_owner_id_application_id_private_application_owner_id_id_fk": {
+          "name": "private_application_submission_owner_id_application_id_private_application_owner_id_id_fk",
+          "tableFrom": "private_application_submission",
+          "tableTo": "private_application",
+          "columnsFrom": [
+            "owner_id",
+            "application_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_application_submission_owner_id_worker_id_private_worker_owner_id_id_fk": {
+          "name": "private_application_submission_owner_id_worker_id_private_worker_owner_id_id_fk",
+          "tableFrom": "private_application_submission",
+          "tableTo": "private_worker",
+          "columnsFrom": [
+            "owner_id",
+            "worker_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_submission_manifest_hash": {
+          "name": "private_submission_manifest_hash",
+          "value": "length(\"private_application_submission\".\"manifest_hash\") = 64 and \"private_application_submission\".\"manifest_hash\" not glob '*[^a-f0-9]*'"
+        },
+        "private_submission_artifacts": {
+          "name": "private_submission_artifacts",
+          "value": "json_valid(\"private_application_submission\".\"artifact_hashes\") and length(cast(\"private_application_submission\".\"artifact_hashes\" as blob)) <= 16384"
+        },
+        "private_submission_state": {
+          "name": "private_submission_state",
+          "value": "\"private_application_submission\".\"state\" in ('intent','unknown','submitted') and (\"private_application_submission\".\"state\" != 'submitted' or \"private_application_submission\".\"submitted_at\" is not null)"
+        }
+      }
+    },
+    "private_application": {
+      "name": "private_application",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "worker_id": {
+          "name": "worker_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ats": {
+          "name": "ats",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tenant": {
+          "name": "tenant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "requisition": {
+          "name": "requisition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attempt": {
+          "name": "attempt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "previous_application_id": {
+          "name": "previous_application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "snapshot_manifest_id": {
+          "name": "snapshot_manifest_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "snapshot_target_key": {
+          "name": "snapshot_target_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "snapshot_hash": {
+          "name": "snapshot_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "employer_key": {
+          "name": "employer_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'queued'"
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "fence": {
+          "name": "fence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "lease_until": {
+          "name": "lease_until",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lease_checked_at": {
+          "name": "lease_checked_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "checkpoint": {
+          "name": "checkpoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reason_code": {
+          "name": "reason_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "retries": {
+          "name": "retries",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "available_at": {
+          "name": "available_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hidden_at": {
+          "name": "hidden_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_application_owner_id": {
+          "name": "private_application_owner_id",
+          "columns": [
+            "owner_id",
+            "id"
+          ],
+          "isUnique": true
+        },
+        "private_application_identity": {
+          "name": "private_application_identity",
+          "columns": [
+            "owner_id",
+            "ats",
+            "tenant",
+            "requisition",
+            "attempt"
+          ],
+          "isUnique": true
+        },
+        "private_application_one_successor": {
+          "name": "private_application_one_successor",
+          "columns": [
+            "owner_id",
+            "previous_application_id"
+          ],
+          "isUnique": true
+        },
+        "private_application_active_tenant": {
+          "name": "private_application_active_tenant",
+          "columns": [
+            "owner_id",
+            "ats",
+            "tenant"
+          ],
+          "isUnique": true,
+          "where": "\"private_application\".\"lease_until\" is not null"
+        },
+        "private_application_queue": {
+          "name": "private_application_queue",
+          "columns": [
+            "owner_id",
+            "worker_id",
+            "available_at"
+          ],
+          "isUnique": false
+        },
+        "private_application_worker_state": {
+          "name": "private_application_worker_state",
+          "columns": [
+            "owner_id",
+            "worker_id",
+            "state",
+            "available_at"
+          ],
+          "isUnique": false
+        },
+        "private_application_started": {
+          "name": "private_application_started",
+          "columns": [
+            "owner_id",
+            "started_at"
+          ],
+          "isUnique": false
+        },
+        "private_application_by_state": {
+          "name": "private_application_by_state",
+          "columns": [
+            "state"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_application_owner_id_private_user_id_fk": {
+          "name": "private_application_owner_id_private_user_id_fk",
+          "tableFrom": "private_application",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_application_owner_id_run_id_worker_id_private_application_run_owner_id_id_worker_id_fk": {
+          "name": "private_application_owner_id_run_id_worker_id_private_application_run_owner_id_id_worker_id_fk",
+          "tableFrom": "private_application",
+          "tableTo": "private_application_run",
+          "columnsFrom": [
+            "owner_id",
+            "run_id",
+            "worker_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id",
+            "worker_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_application_state": {
+          "name": "private_application_state",
+          "value": "state in ('queued','screening','tailoring','filling','ready','needs_answer','needs_document','needs_policy_decision','needs_login','needs_verification','provider_unavailable','retryable_failure','blocked_unsupported','submitting','submission_unknown','submitted','failed','skipped','cancelled')"
+        },
+        "private_application_counters": {
+          "name": "private_application_counters",
+          "value": "\"private_application\".\"revision\" > 0 and \"private_application\".\"fence\" >= 0 and \"private_application\".\"retries\" between 0 and 3"
+        },
+        "private_application_lease": {
+          "name": "private_application_lease",
+          "value": "(\"private_application\".\"lease_until\" is null and \"private_application\".\"lease_checked_at\" is null) or (\"private_application\".\"lease_until\" is not null and \"private_application\".\"lease_checked_at\" is not null and \"private_application\".\"fence\" > 0 and \"private_application\".\"lease_until\" > \"private_application\".\"lease_checked_at\" and \"private_application\".\"state\" in ('screening','tailoring','filling','ready','submitting','submission_unknown'))"
+        },
+        "private_application_checkpoint": {
+          "name": "private_application_checkpoint",
+          "value": "\"private_application\".\"checkpoint\" is null or (json_valid(\"private_application\".\"checkpoint\") and length(\"private_application\".\"checkpoint\") <= 1024)"
+        },
+        "private_application_attempt": {
+          "name": "private_application_attempt",
+          "value": "typeof(\"private_application\".\"attempt\") = 'integer' and \"private_application\".\"attempt\" > 0 and ((\"private_application\".\"attempt\" = 1 and \"private_application\".\"previous_application_id\" is null) or (\"private_application\".\"attempt\" > 1 and \"private_application\".\"previous_application_id\" is not null))"
+        },
+        "private_application_snapshot": {
+          "name": "private_application_snapshot",
+          "value": "(\"private_application\".\"snapshot_manifest_id\" is null and \"private_application\".\"snapshot_target_key\" is null and \"private_application\".\"snapshot_hash\" is null) or (\"private_application\".\"snapshot_manifest_id\" is not null and \"private_application\".\"snapshot_target_key\" is not null and \"private_application\".\"snapshot_hash\" is not null and length(\"private_application\".\"snapshot_hash\") = 64)"
+        }
+      }
+    },
+    "private_discovery_manifest": {
+      "name": "private_discovery_manifest",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy_revision": {
+          "name": "policy_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "artifact": {
+          "name": "artifact",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hash": {
+          "name": "hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "captured_at": {
+          "name": "captured_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "candidate_count": {
+          "name": "candidate_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "staged_count": {
+          "name": "staged_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'staging'"
+        }
+      },
+      "indexes": {
+        "private_manifest_owner_id": {
+          "name": "private_manifest_owner_id",
+          "columns": [
+            "owner_id",
+            "id"
+          ],
+          "isUnique": true
+        },
+        "private_manifest_owner_run_id": {
+          "name": "private_manifest_owner_run_id",
+          "columns": [
+            "owner_id",
+            "run_id",
+            "id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "private_discovery_manifest_owner_id_run_id_private_application_run_owner_id_id_fk": {
+          "name": "private_discovery_manifest_owner_id_run_id_private_application_run_owner_id_id_fk",
+          "tableFrom": "private_discovery_manifest",
+          "tableTo": "private_application_run",
+          "columnsFrom": [
+            "owner_id",
+            "run_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_manifest_artifact": {
+          "name": "private_manifest_artifact",
+          "value": "json_valid(\"private_discovery_manifest\".\"artifact\") and length(cast(\"private_discovery_manifest\".\"artifact\" as blob)) <= 16777216 and length(\"private_discovery_manifest\".\"hash\") = 64"
+        },
+        "private_manifest_progress": {
+          "name": "private_manifest_progress",
+          "value": "\"private_discovery_manifest\".\"candidate_count\" between 0 and 10000 and \"private_discovery_manifest\".\"staged_count\" between 0 and \"private_discovery_manifest\".\"candidate_count\" and \"private_discovery_manifest\".\"revision\" > 0 and \"private_discovery_manifest\".\"state\" in ('staging','ready','abandoned') and (\"private_discovery_manifest\".\"state\" != 'ready' or \"private_discovery_manifest\".\"staged_count\" = \"private_discovery_manifest\".\"candidate_count\")"
+        }
+      }
+    },
+    "private_discovery_target": {
+      "name": "private_discovery_target",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "manifest_id": {
+          "name": "manifest_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "target_key": {
+          "name": "target_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "candidate_index": {
+          "name": "candidate_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "candidate_hash": {
+          "name": "candidate_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ats": {
+          "name": "ats",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "tenant": {
+          "name": "tenant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "requisition": {
+          "name": "requisition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "employer_key": {
+          "name": "employer_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "disposition": {
+          "name": "disposition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_target_run_key": {
+          "name": "private_target_run_key",
+          "columns": [
+            "owner_id",
+            "run_id",
+            "target_key"
+          ],
+          "isUnique": true
+        },
+        "private_target_manifest": {
+          "name": "private_target_manifest",
+          "columns": [
+            "owner_id",
+            "manifest_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_discovery_target_owner_id_run_id_manifest_id_private_discovery_manifest_owner_id_run_id_id_fk": {
+          "name": "private_discovery_target_owner_id_run_id_manifest_id_private_discovery_manifest_owner_id_run_id_id_fk",
+          "tableFrom": "private_discovery_target",
+          "tableTo": "private_discovery_manifest",
+          "columnsFrom": [
+            "owner_id",
+            "run_id",
+            "manifest_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "run_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_discovery_target_owner_id_application_id_private_application_owner_id_id_fk": {
+          "name": "private_discovery_target_owner_id_application_id_private_application_owner_id_id_fk",
+          "tableFrom": "private_discovery_target",
+          "tableTo": "private_application",
+          "columnsFrom": [
+            "owner_id",
+            "application_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_target_disposition": {
+          "name": "private_target_disposition",
+          "value": "disposition in ('eligible','duplicate','unresolved','held_policy','held_cap','manual_reported')"
+        },
+        "private_target_identity": {
+          "name": "private_target_identity",
+          "value": "(\"private_discovery_target\".\"ats\" is null and \"private_discovery_target\".\"tenant\" is null and \"private_discovery_target\".\"requisition\" is null) or (\"private_discovery_target\".\"ats\" is not null and \"private_discovery_target\".\"tenant\" is not null and \"private_discovery_target\".\"requisition\" is not null)"
+        },
+        "private_target_snapshot": {
+          "name": "private_target_snapshot",
+          "value": "\"private_discovery_target\".\"candidate_index\" >= 0 and length(\"private_discovery_target\".\"candidate_hash\") = 64"
+        }
+      }
+    },
+    "private_document_upload_grant": {
+      "name": "private_document_upload_grant",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "input_hash": {
+          "name": "input_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token_issued": {
+          "name": "token_issued",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_document_upload_grant_document_id_unique": {
+          "name": "private_document_upload_grant_document_id_unique",
+          "columns": [
+            "document_id"
+          ],
+          "isUnique": true
+        },
+        "private_document_grant_owner_request_unique": {
+          "name": "private_document_grant_owner_request_unique",
+          "columns": [
+            "owner_id",
+            "request_id"
+          ],
+          "isUnique": true
+        },
+        "private_document_grant_expiry_idx": {
+          "name": "private_document_grant_expiry_idx",
+          "columns": [
+            "expires_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_document_upload_grant_owner_id_private_user_id_fk": {
+          "name": "private_document_upload_grant_owner_id_private_user_id_fk",
+          "tableFrom": "private_document_upload_grant",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "private_document_upload_grant_owner_id_document_id_private_document_owner_id_id_fk": {
+          "name": "private_document_upload_grant_owner_id_document_id_private_document_owner_id_id_fk",
+          "tableFrom": "private_document_upload_grant",
+          "tableTo": "private_document",
+          "columnsFrom": [
+            "owner_id",
+            "document_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_document_grant_token_check": {
+          "name": "private_document_grant_token_check",
+          "value": "\"private_document_upload_grant\".\"token_issued\" in (0,1)"
+        }
+      }
+    },
+    "private_document": {
+      "name": "private_document",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "master_id": {
+          "name": "master_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "object_key": {
+          "name": "object_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "storage": {
+          "name": "storage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mime": {
+          "name": "mime",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "size": {
+          "name": "size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sha256": {
+          "name": "sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "safety_check": {
+          "name": "safety_check",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "callback_hash": {
+          "name": "callback_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lease_id": {
+          "name": "lease_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lease_until": {
+          "name": "lease_until",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_document_object_key_unique": {
+          "name": "private_document_object_key_unique",
+          "columns": [
+            "object_key"
+          ],
+          "isUnique": true
+        },
+        "private_document_owner_id_unique": {
+          "name": "private_document_owner_id_unique",
+          "columns": [
+            "owner_id",
+            "id"
+          ],
+          "isUnique": true
+        },
+        "private_document_master_version_unique": {
+          "name": "private_document_master_version_unique",
+          "columns": [
+            "master_id",
+            "version"
+          ],
+          "isUnique": true
+        },
+        "private_document_owner_state_idx": {
+          "name": "private_document_owner_state_idx",
+          "columns": [
+            "owner_id",
+            "state"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_document_owner_id_private_user_id_fk": {
+          "name": "private_document_owner_id_private_user_id_fk",
+          "tableFrom": "private_document",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "private_document_owner_id_parent_id_private_document_owner_id_id_fk": {
+          "name": "private_document_owner_id_parent_id_private_document_owner_id_id_fk",
+          "tableFrom": "private_document",
+          "tableTo": "private_document",
+          "columnsFrom": [
+            "owner_id",
+            "parent_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_document_owner_id_master_id_private_document_owner_id_id_fk": {
+          "name": "private_document_owner_id_master_id_private_document_owner_id_id_fk",
+          "tableFrom": "private_document",
+          "tableTo": "private_document",
+          "columnsFrom": [
+            "owner_id",
+            "master_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_document_kind_check": {
+          "name": "private_document_kind_check",
+          "value": "\"private_document\".\"kind\" in ('resume_master','resume_source','resume_artifact','transcript','certificate','supporting','portfolio','artwork')"
+        },
+        "private_document_state_check": {
+          "name": "private_document_state_check",
+          "value": "\"private_document\".\"state\" in ('pending','quarantined','available','rejected','expired')"
+        },
+        "private_document_safety_check": {
+          "name": "private_document_safety_check",
+          "value": "\"private_document\".\"safety_check\" in ('pending','passed','rejected','deferred')"
+        },
+        "private_document_storage_check": {
+          "name": "private_document_storage_check",
+          "value": "\"private_document\".\"storage\" in ('local','blob')"
+        },
+        "private_document_size_check": {
+          "name": "private_document_size_check",
+          "value": "typeof(\"private_document\".\"size\") = 'integer' and \"private_document\".\"size\" between 1 and 10485760"
+        },
+        "private_document_version_check": {
+          "name": "private_document_version_check",
+          "value": "typeof(\"private_document\".\"version\") = 'integer' and \"private_document\".\"version\" > 0"
+        },
+        "private_document_attempts_check": {
+          "name": "private_document_attempts_check",
+          "value": "typeof(\"private_document\".\"attempts\") = 'integer' and \"private_document\".\"attempts\" >= 0"
+        },
+        "private_document_hash_check": {
+          "name": "private_document_hash_check",
+          "value": "\"private_document\".\"sha256\" is null or (length(\"private_document\".\"sha256\") = 64 and \"private_document\".\"sha256\" not glob '*[^a-f0-9]*')"
+        },
+        "private_document_available_check": {
+          "name": "private_document_available_check",
+          "value": "\"private_document\".\"state\" != 'available' or (\"private_document\".\"sha256\" is not null and \"private_document\".\"safety_check\" = 'passed')"
+        },
+        "private_document_mime_check": {
+          "name": "private_document_mime_check",
+          "value": "\"private_document\".\"mime\" in ('application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/png','image/jpeg')"
+        }
+      }
+    },
+    "private_inbox_read": {
+      "name": "private_inbox_read",
+      "columns": {
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "read_at": {
+          "name": "read_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "private_inbox_read_owner_id_application_id_event_id_private_application_event_owner_id_application_id_event_id_fk": {
+          "name": "private_inbox_read_owner_id_application_id_event_id_private_application_event_owner_id_application_id_event_id_fk",
+          "tableFrom": "private_inbox_read",
+          "tableTo": "private_application_event",
+          "columnsFrom": [
+            "owner_id",
+            "application_id",
+            "event_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "application_id",
+            "event_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "private_inbox_read_owner_id_application_id_event_id_pk": {
+          "columns": [
+            "owner_id",
+            "application_id",
+            "event_id"
+          ],
+          "name": "private_inbox_read_owner_id_application_id_event_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "private_legacy_import_preview": {
+      "name": "private_legacy_import_preview",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "preview": {
+          "name": "preview",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_import_preview_owner_id": {
+          "name": "private_import_preview_owner_id",
+          "columns": [
+            "owner_id",
+            "id"
+          ],
+          "isUnique": true
+        },
+        "private_import_preview_request": {
+          "name": "private_import_preview_request",
+          "columns": [
+            "owner_id",
+            "request_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "private_legacy_import_preview_owner_id_private_user_id_fk": {
+          "name": "private_legacy_import_preview_owner_id_private_user_id_fk",
+          "tableFrom": "private_legacy_import_preview",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_import_preview_json": {
+          "name": "private_import_preview_json",
+          "value": "json_valid(\"private_legacy_import_preview\".\"preview\") and length(cast(\"private_legacy_import_preview\".\"preview\" as blob)) <= 4194304"
+        }
+      }
+    },
+    "private_manual_application_mark": {
+      "name": "private_manual_application_mark",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "preview_id": {
+          "name": "preview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "posting_id": {
+          "name": "posting_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "evidence": {
+          "name": "evidence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ats": {
+          "name": "ats",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "tenant": {
+          "name": "tenant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "requisition": {
+          "name": "requisition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'manual_reported'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_manual_preview_posting": {
+          "name": "private_manual_preview_posting",
+          "columns": [
+            "owner_id",
+            "preview_id",
+            "posting_id"
+          ],
+          "isUnique": true
+        },
+        "private_manual_identity": {
+          "name": "private_manual_identity",
+          "columns": [
+            "owner_id",
+            "ats",
+            "tenant",
+            "requisition"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_manual_application_mark_owner_id_preview_id_private_legacy_import_preview_owner_id_id_fk": {
+          "name": "private_manual_application_mark_owner_id_preview_id_private_legacy_import_preview_owner_id_id_fk",
+          "tableFrom": "private_manual_application_mark",
+          "tableTo": "private_legacy_import_preview",
+          "columnsFrom": [
+            "owner_id",
+            "preview_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_manual_evidence": {
+          "name": "private_manual_evidence",
+          "value": "json_valid(\"private_manual_application_mark\".\"evidence\") and \"private_manual_application_mark\".\"status\" = 'manual_reported'"
+        },
+        "private_manual_identity_check": {
+          "name": "private_manual_identity_check",
+          "value": "(\"private_manual_application_mark\".\"ats\" is null and \"private_manual_application_mark\".\"tenant\" is null and \"private_manual_application_mark\".\"requisition\" is null) or (\"private_manual_application_mark\".\"ats\" is not null and \"private_manual_application_mark\".\"tenant\" is not null and \"private_manual_application_mark\".\"requisition\" is not null)"
+        }
+      }
+    },
+    "private_policy_command": {
+      "name": "private_policy_command",
+      "columns": {
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "acknowledgement": {
+          "name": "acknowledgement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_policy_command_revision_unique": {
+          "name": "private_policy_command_revision_unique",
+          "columns": [
+            "owner_id",
+            "revision"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "private_policy_command_owner_id_private_user_id_fk": {
+          "name": "private_policy_command_owner_id_private_user_id_fk",
+          "tableFrom": "private_policy_command",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "private_policy_command_owner_id_request_id_pk": {
+          "columns": [
+            "owner_id",
+            "request_id"
+          ],
+          "name": "private_policy_command_owner_id_request_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_policy_command_revision_check": {
+          "name": "private_policy_command_revision_check",
+          "value": "typeof(\"private_policy_command\".\"revision\") = 'integer' and \"private_policy_command\".\"revision\" > 0"
+        },
+        "private_policy_ack_json_check": {
+          "name": "private_policy_ack_json_check",
+          "value": "json_valid(\"private_policy_command\".\"acknowledgement\")"
+        }
+      }
+    },
+    "private_policy_head": {
+      "name": "private_policy_head",
+      "columns": {
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "accepted_policy_version": {
+          "name": "accepted_policy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "accepted_policy_hash": {
+          "name": "accepted_policy_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "private_policy_head_owner_id_private_user_id_fk": {
+          "name": "private_policy_head_owner_id_private_user_id_fk",
+          "tableFrom": "private_policy_head",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "private_policy_head_owner_id_policy_version_private_policy_version_owner_id_version_fk": {
+          "name": "private_policy_head_owner_id_policy_version_private_policy_version_owner_id_version_fk",
+          "tableFrom": "private_policy_head",
+          "tableTo": "private_policy_version",
+          "columnsFrom": [
+            "owner_id",
+            "policy_version"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_policy_head_owner_id_accepted_policy_version_private_policy_version_owner_id_version_fk": {
+          "name": "private_policy_head_owner_id_accepted_policy_version_private_policy_version_owner_id_version_fk",
+          "tableFrom": "private_policy_head",
+          "tableTo": "private_policy_version",
+          "columnsFrom": [
+            "owner_id",
+            "accepted_policy_version"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_policy_head_revision_check": {
+          "name": "private_policy_head_revision_check",
+          "value": "typeof(\"private_policy_head\".\"revision\") = 'integer' and \"private_policy_head\".\"revision\" > 0"
+        },
+        "private_policy_enabled_check": {
+          "name": "private_policy_enabled_check",
+          "value": "\"private_policy_head\".\"enabled\" in (0, 1)"
+        },
+        "private_policy_acceptance_check": {
+          "name": "private_policy_acceptance_check",
+          "value": "(\"private_policy_head\".\"enabled\" = 0 and \"private_policy_head\".\"accepted_policy_version\" is null and \"private_policy_head\".\"accepted_policy_hash\" is null and \"private_policy_head\".\"accepted_at\" is null) or (\"private_policy_head\".\"enabled\" = 1 and \"private_policy_head\".\"accepted_policy_version\" = \"private_policy_head\".\"policy_version\" and \"private_policy_head\".\"accepted_policy_hash\" is not null and \"private_policy_head\".\"accepted_at\" is not null)"
+        }
+      }
+    },
+    "private_policy_version": {
+      "name": "private_policy_version",
+      "columns": {
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hash": {
+          "name": "hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy": {
+          "name": "policy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "private_policy_version_owner_id_private_user_id_fk": {
+          "name": "private_policy_version_owner_id_private_user_id_fk",
+          "tableFrom": "private_policy_version",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "private_policy_version_owner_id_version_pk": {
+          "columns": [
+            "owner_id",
+            "version"
+          ],
+          "name": "private_policy_version_owner_id_version_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_policy_version_check": {
+          "name": "private_policy_version_check",
+          "value": "typeof(\"private_policy_version\".\"version\") = 'integer' and \"private_policy_version\".\"version\" > 0"
+        },
+        "private_policy_json_check": {
+          "name": "private_policy_json_check",
+          "value": "json_valid(\"private_policy_version\".\"policy\") and length(cast(\"private_policy_version\".\"policy\" as blob)) <= 131072"
+        }
+      }
+    },
+    "private_profile_head": {
+      "name": "private_profile_head",
+      "columns": {
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "private_profile_head_owner_id_private_user_id_fk": {
+          "name": "private_profile_head_owner_id_private_user_id_fk",
+          "tableFrom": "private_profile_head",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "private_profile_head_owner_id_revision_private_profile_version_owner_id_revision_fk": {
+          "name": "private_profile_head_owner_id_revision_private_profile_version_owner_id_revision_fk",
+          "tableFrom": "private_profile_head",
+          "tableTo": "private_profile_version",
+          "columnsFrom": [
+            "owner_id",
+            "revision"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "revision"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "private_profile_version": {
+      "name": "private_profile_version",
+      "columns": {
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "profile": {
+          "name": "profile",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_profile_request_unique": {
+          "name": "private_profile_request_unique",
+          "columns": [
+            "owner_id",
+            "request_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "private_profile_version_owner_id_private_user_id_fk": {
+          "name": "private_profile_version_owner_id_private_user_id_fk",
+          "tableFrom": "private_profile_version",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "private_profile_version_owner_id_revision_pk": {
+          "columns": [
+            "owner_id",
+            "revision"
+          ],
+          "name": "private_profile_version_owner_id_revision_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_profile_revision_check": {
+          "name": "private_profile_revision_check",
+          "value": "typeof(\"private_profile_version\".\"revision\") = 'integer' and \"private_profile_version\".\"revision\" > 0"
+        },
+        "private_profile_json_check": {
+          "name": "private_profile_json_check",
+          "value": "json_valid(\"private_profile_version\".\"profile\") and length(cast(\"private_profile_version\".\"profile\" as blob)) <= 131072"
+        }
+      }
+    },
+    "private_question_answer": {
+      "name": "private_question_answer",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question_id": {
+          "name": "question_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "semantic_hash": {
+          "name": "semantic_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "scope_hash": {
+          "name": "scope_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "meaning_review_id": {
+          "name": "meaning_review_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "profile_revision": {
+          "name": "profile_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy_revision": {
+          "name": "policy_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fact_versions": {
+          "name": "fact_versions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reuse": {
+          "name": "reuse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "descriptor": {
+          "name": "descriptor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provenance": {
+          "name": "provenance",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_answer_owner_id": {
+          "name": "private_answer_owner_id",
+          "columns": [
+            "owner_id",
+            "id"
+          ],
+          "isUnique": true
+        },
+        "private_answer_reuse": {
+          "name": "private_answer_reuse",
+          "columns": [
+            "owner_id",
+            "semantic_hash",
+            "profile_revision",
+            "policy_revision"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_question_answer_owner_id_private_user_id_fk": {
+          "name": "private_question_answer_owner_id_private_user_id_fk",
+          "tableFrom": "private_question_answer",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_question_answer_owner_id_application_id_private_application_owner_id_id_fk": {
+          "name": "private_question_answer_owner_id_application_id_private_application_owner_id_id_fk",
+          "tableFrom": "private_question_answer",
+          "tableTo": "private_application",
+          "columnsFrom": [
+            "owner_id",
+            "application_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_question_answer_owner_id_meaning_review_id_private_question_review_owner_id_id_fk": {
+          "name": "private_question_answer_owner_id_meaning_review_id_private_question_review_owner_id_id_fk",
+          "tableFrom": "private_question_answer",
+          "tableTo": "private_question_review",
+          "columnsFrom": [
+            "owner_id",
+            "meaning_review_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_answer_json": {
+          "name": "private_answer_json",
+          "value": "json_valid(\"private_question_answer\".\"value\") and json_valid(\"private_question_answer\".\"descriptor\") and json_valid(\"private_question_answer\".\"fact_versions\") and json_valid(\"private_question_answer\".\"provenance\")"
+        },
+        "private_answer_reuse_check": {
+          "name": "private_answer_reuse_check",
+          "value": "\"private_question_answer\".\"reuse\" in ('application','employer','equivalent') and (\"private_question_answer\".\"reuse\" = 'application' or \"private_question_answer\".\"meaning_review_id\" is not null)"
+        },
+        "private_answer_versions": {
+          "name": "private_answer_versions",
+          "value": "\"private_question_answer\".\"profile_revision\" >= 0 and \"private_question_answer\".\"policy_revision\" > 0"
+        }
+      }
+    },
+    "private_question_intervention": {
+      "name": "private_question_intervention",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question_id": {
+          "name": "question_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "worker_id": {
+          "name": "worker_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_revision": {
+          "name": "application_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fence": {
+          "name": "fence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question_revision": {
+          "name": "question_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_intervention_worker": {
+          "name": "private_intervention_worker",
+          "columns": [
+            "owner_id",
+            "worker_id",
+            "status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_question_intervention_owner_id_question_id_private_question_owner_id_id_fk": {
+          "name": "private_question_intervention_owner_id_question_id_private_question_owner_id_id_fk",
+          "tableFrom": "private_question_intervention",
+          "tableTo": "private_question",
+          "columnsFrom": [
+            "owner_id",
+            "question_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_question_intervention_owner_id_application_id_private_application_owner_id_id_fk": {
+          "name": "private_question_intervention_owner_id_application_id_private_application_owner_id_id_fk",
+          "tableFrom": "private_question_intervention",
+          "tableTo": "private_application",
+          "columnsFrom": [
+            "owner_id",
+            "application_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_question_intervention_owner_id_worker_id_private_worker_owner_id_id_fk": {
+          "name": "private_question_intervention_owner_id_worker_id_private_worker_owner_id_id_fk",
+          "tableFrom": "private_question_intervention",
+          "tableTo": "private_worker",
+          "columnsFrom": [
+            "owner_id",
+            "worker_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_intervention_state": {
+          "name": "private_intervention_state",
+          "value": "\"private_question_intervention\".\"status\" in ('pending','focused','unavailable','observed') and \"private_question_intervention\".\"revision\" > 0 and \"private_question_intervention\".\"application_revision\" > 0 and \"private_question_intervention\".\"fence\" > 0"
+        }
+      }
+    },
+    "private_question_review": {
+      "name": "private_question_review",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "semantic_hash": {
+          "name": "semantic_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "meaning_id": {
+          "name": "meaning_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_review_owner_id": {
+          "name": "private_review_owner_id",
+          "columns": [
+            "owner_id",
+            "id"
+          ],
+          "isUnique": true
+        },
+        "private_review_semantic": {
+          "name": "private_review_semantic",
+          "columns": [
+            "owner_id",
+            "semantic_hash"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "private_question_review_owner_id_private_user_id_fk": {
+          "name": "private_question_review_owner_id_private_user_id_fk",
+          "tableFrom": "private_question_review",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_review_hash": {
+          "name": "private_review_hash",
+          "value": "length(\"private_question_review\".\"semantic_hash\") = 64"
+        }
+      }
+    },
+    "private_question": {
+      "name": "private_question",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "descriptor": {
+          "name": "descriptor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "company": {
+          "name": "company",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "semantic_hash": {
+          "name": "semantic_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "scope_hash": {
+          "name": "scope_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "profile_revision": {
+          "name": "profile_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy_revision": {
+          "name": "policy_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fact_versions": {
+          "name": "fact_versions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "answer_id": {
+          "name": "answer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "active": {
+          "name": "active",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_question_owner_id": {
+          "name": "private_question_owner_id",
+          "columns": [
+            "owner_id",
+            "id"
+          ],
+          "isUnique": true
+        },
+        "private_question_field": {
+          "name": "private_question_field",
+          "columns": [
+            "owner_id",
+            "application_id",
+            "key"
+          ],
+          "isUnique": true
+        },
+        "private_question_unresolved": {
+          "name": "private_question_unresolved",
+          "columns": [
+            "owner_id",
+            "active",
+            "resolved_at"
+          ],
+          "isUnique": false
+        },
+        "private_question_equivalence": {
+          "name": "private_question_equivalence",
+          "columns": [
+            "owner_id",
+            "semantic_hash"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_question_owner_id_application_id_private_application_owner_id_id_fk": {
+          "name": "private_question_owner_id_application_id_private_application_owner_id_id_fk",
+          "tableFrom": "private_question",
+          "tableTo": "private_application",
+          "columnsFrom": [
+            "owner_id",
+            "application_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_question_owner_id_answer_id_private_question_answer_owner_id_id_fk": {
+          "name": "private_question_owner_id_answer_id_private_question_answer_owner_id_id_fk",
+          "tableFrom": "private_question",
+          "tableTo": "private_question_answer",
+          "columnsFrom": [
+            "owner_id",
+            "answer_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_question_versions": {
+          "name": "private_question_versions",
+          "value": "\"private_question\".\"revision\" > 0 and \"private_question\".\"profile_revision\" >= 0 and \"private_question\".\"policy_revision\" > 0 and \"private_question\".\"active\" in (0,1)"
+        },
+        "private_question_json": {
+          "name": "private_question_json",
+          "value": "json_valid(\"private_question\".\"descriptor\") and length(cast(\"private_question\".\"descriptor\" as blob)) <= 65536 and json_valid(\"private_question\".\"fact_versions\")"
+        }
+      }
+    },
+    "private_rate_limit": {
+      "name": "private_rate_limit",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "last_request": {
+          "name": "last_request",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_rate_limit_key_unique": {
+          "name": "private_rate_limit_key_unique",
+          "columns": [
+            "key"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_rate_limit_count_check": {
+          "name": "private_rate_limit_count_check",
+          "value": "typeof(\"private_rate_limit\".\"count\") = 'integer' and \"private_rate_limit\".\"count\" >= 0"
+        },
+        "private_rate_limit_last_request_check": {
+          "name": "private_rate_limit_last_request_check",
+          "value": "typeof(\"private_rate_limit\".\"last_request\") = 'integer' and \"private_rate_limit\".\"last_request\" >= 0"
+        }
+      }
+    },
+    "private_session": {
+      "name": "private_session",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_session_token_unique": {
+          "name": "private_session_token_unique",
+          "columns": [
+            "token"
+          ],
+          "isUnique": true
+        },
+        "private_session_user_id_idx": {
+          "name": "private_session_user_id_idx",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "private_session_user_id_private_user_id_fk": {
+          "name": "private_session_user_id_private_user_id_fk",
+          "tableFrom": "private_session",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "private_user": {
+      "name": "private_user",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_user_email_unique": {
+          "name": "private_user_email_unique",
+          "columns": [
+            "email"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_user_email_verified_check": {
+          "name": "private_user_email_verified_check",
+          "value": "\"private_user\".\"email_verified\" in (0, 1)"
+        }
+      }
+    },
+    "private_verification": {
+      "name": "private_verification",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_verification_identifier_idx": {
+          "name": "private_verification_identifier_idx",
+          "columns": [
+            "identifier"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "private_worker_command": {
+      "name": "private_worker_command",
+      "columns": {
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "acknowledgement": {
+          "name": "acknowledgement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "private_worker_command_owner_id_private_user_id_fk": {
+          "name": "private_worker_command_owner_id_private_user_id_fk",
+          "tableFrom": "private_worker_command",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "private_worker_command_owner_id_request_id_pk": {
+          "columns": [
+            "owner_id",
+            "request_id"
+          ],
+          "name": "private_worker_command_owner_id_request_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_worker_command_json": {
+          "name": "private_worker_command_json",
+          "value": "json_valid(\"private_worker_command\".\"acknowledgement\")"
+        }
+      }
+    },
+    "private_worker_pairing": {
+      "name": "private_worker_pairing",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "grant_hash": {
+          "name": "grant_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "credential_binding": {
+          "name": "credential_binding",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "consumed_at": {
+          "name": "consumed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_worker_pairing_grant_hash_unique": {
+          "name": "private_worker_pairing_grant_hash_unique",
+          "columns": [
+            "grant_hash"
+          ],
+          "isUnique": true
+        },
+        "private_pairing_owner_id": {
+          "name": "private_pairing_owner_id",
+          "columns": [
+            "owner_id",
+            "id"
+          ],
+          "isUnique": true
+        },
+        "private_pairing_request": {
+          "name": "private_pairing_request",
+          "columns": [
+            "owner_id",
+            "request_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "private_worker_pairing_owner_id_private_user_id_fk": {
+          "name": "private_worker_pairing_owner_id_private_user_id_fk",
+          "tableFrom": "private_worker_pairing",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_pairing_revision": {
+          "name": "private_pairing_revision",
+          "value": "\"private_worker_pairing\".\"revision\" > 0"
+        }
+      }
+    },
+    "private_worker": {
+      "name": "private_worker",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pairing_id": {
+          "name": "pairing_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "credential_binding": {
+          "name": "credential_binding",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "registration_id": {
+          "name": "registration_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "registration_hash": {
+          "name": "registration_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "protocol_version": {
+          "name": "protocol_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "worker_version": {
+          "name": "worker_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "capabilities": {
+          "name": "capabilities",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "daily_start_minute": {
+          "name": "daily_start_minute",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "time_zone": {
+          "name": "time_zone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "daily_start_updated_at": {
+          "name": "daily_start_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "private_worker_pairing_id_unique": {
+          "name": "private_worker_pairing_id_unique",
+          "columns": [
+            "pairing_id"
+          ],
+          "isUnique": true
+        },
+        "private_worker_token_hash_unique": {
+          "name": "private_worker_token_hash_unique",
+          "columns": [
+            "token_hash"
+          ],
+          "isUnique": true
+        },
+        "private_worker_owner_id": {
+          "name": "private_worker_owner_id",
+          "columns": [
+            "owner_id",
+            "id"
+          ],
+          "isUnique": true
+        },
+        "private_worker_registration": {
+          "name": "private_worker_registration",
+          "columns": [
+            "owner_id",
+            "registration_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "private_worker_owner_id_private_user_id_fk": {
+          "name": "private_worker_owner_id_private_user_id_fk",
+          "tableFrom": "private_worker",
+          "tableTo": "private_user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "private_worker_owner_id_pairing_id_private_worker_pairing_owner_id_id_fk": {
+          "name": "private_worker_owner_id_pairing_id_private_worker_pairing_owner_id_id_fk",
+          "tableFrom": "private_worker",
+          "tableTo": "private_worker_pairing",
+          "columnsFrom": [
+            "owner_id",
+            "pairing_id"
+          ],
+          "columnsTo": [
+            "owner_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "private_worker_protocol": {
+          "name": "private_worker_protocol",
+          "value": "\"private_worker\".\"protocol_version\" = 1 and json_valid(\"private_worker\".\"capabilities\") and \"private_worker\".\"capabilities\" = '[\"control-v1\"]'"
+        },
+        "private_worker_revision": {
+          "name": "private_worker_revision",
+          "value": "\"private_worker\".\"revision\" > 0"
+        },
+        "private_worker_hashes": {
+          "name": "private_worker_hashes",
+          "value": "length(\"private_worker\".\"token_hash\") = 64 and length(\"private_worker\".\"credential_binding\") = 64"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
