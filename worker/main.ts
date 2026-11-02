@@ -259,7 +259,7 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
     let submissionStarted = false;
     let live: ReturnType<typeof liveView> | undefined;
     // What the applicant reviews before approving: each field Workie filled and its value.
-    let review: { label: string; value: string }[] | undefined;
+    let review: { label: string; value: string }[] | undefined, unreviewed = false;
     // Set when the form waits on the applicant's answers: like a form waiting on approval, it keeps its last picture.
     let asking = false;
     try {
@@ -365,7 +365,10 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
         }).slice(0, 64);
         // A form of short answers and no letter goes out unreviewed when the policy allows it; anything longer waits for Apply.
         const short = observed.fields.every(field => field.kind === 'file' || String(adapter.answer(currentApplication, field) ?? '').length <= SHORT_ANSWER_CHARS);
-        if (applicationContext.submitWithoutReview && !letter && short) return { state: "ready" as const, reasonCode: "form_verified", evidence: { formVerified: true } };
+        if (applicationContext.submitWithoutReview && !letter && short) {
+          unreviewed = true;
+          return { state: "ready" as const, reasonCode: "form_verified", evidence: { formVerified: true } };
+        }
         // Nothing is submitted until the applicant reviews the filled form, resume and letter and approves it.
         return { state: "needs_policy_decision" as const, reasonCode: SUBMIT_APPROVAL };
       }
@@ -418,7 +421,7 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
         reason: atsFailureReason(error), detail: error instanceof Error ? error.message.split("\n")[0].slice(0, 300) : null }) + "\n");
       return { state: "retryable_failure" as const, reasonCode: atsFailureReason(error) };
     } finally {
-      await live?.stop(review ? PARKED_STEPS.approval : asking ? PARKED_STEPS.answers : "Workie left this application",
+      await live?.stop(unreviewed ? "Filled. Submitting it next" : review ? PARKED_STEPS.approval : asking ? PARKED_STEPS.answers : "Workie left this application",
         review, !!review || asking);
       if (runtime) await runtime.close().catch(() => {});
       await rm(workDirectory, { recursive: true, force: true });

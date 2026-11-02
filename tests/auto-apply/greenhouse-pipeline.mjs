@@ -254,6 +254,8 @@ test('Greenhouse pipeline tailors the resume, asks only the new question, writes
       // A form of short answers and no letter goes on to submit without the Apply click.
       context.coverLetterAllowed = false; context.answers[asked.questions[0].key] = 'Because I use it';
       assert.deepEqual(await stage('filling'), { state: 'ready', reasonCode: 'form_verified', evidence: { formVerified: true } });
+      assert.equal(calls.live.at(-1).step, 'Filled. Submitting it next');
+      assert.ok(calls.live.at(-1).fields?.some(field => field.value === 'Because I use it'), 'what was sent stays readable');
 
     } finally {
       await rm(directory, { recursive: true, force: true });
