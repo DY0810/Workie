@@ -688,6 +688,21 @@ describe('async leases, checkpoints and stable identity', () => {
     expect(await commandApplication(db, 'alice', run.id, app.id, { ...revision(again.revision), action: 'approve-submit' }, options))
       .toMatchObject({ state: 'ready', reasonCode: 'submit_approved' });
   });
+  it.each([
+    [['fill_forms', 'submit'] as Policy['actions'], 'refused'],
+    [['fill_forms', 'submit', 'submit_without_review'] as Policy['actions'], 'ready'],
+  ])('a filled form skips Apply only when the policy allows submitting without review (%j)', async (actions, outcome) => {
+    const policy = { ...createEmptyPolicy(), actions }, hash = hashValue(policy);
+    await db.insert(policyVersions).values({ ownerId: 'alice', version: 2, hash, policy, createdAt: now });
+    await db.update(policyHeads).set({ revision: 2, policyVersion: 2, acceptedPolicyVersion: 2, acceptedPolicyHash: hash }).where(eq(policyHeads.ownerId, 'alice'));
+    const { worker, app } = await prepared();
+    await db.update(applications).set({ state: 'filling' }).where(eq(applications.id, app.id));
+    const lease = await claim(worker.token);
+    const sent = recordWorkerEvent(db, worker.token, app.id, { ...event(lease, 'ready'), checkpoint: { stage: 'ready', sequence: (lease.checkpoint?.sequence ?? 0) + 1 },
+      reasonCode: 'form_verified', evidence: { formVerified: true } }, options);
+    if (outcome === 'refused') await expect(sent).rejects.toMatchObject({ status: 403, code: 'SUBMIT_DISABLED' });
+    else expect(await sent).toMatchObject({ state: 'ready' });
+  });
   it('revocation commits unknown submission and permanently rejects all subsequent token operations', async () => {
     const { worker, app, run } = await prepared();
     const lease = await claim(worker.token);
