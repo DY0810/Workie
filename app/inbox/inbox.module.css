@@ -97,9 +97,12 @@
 .field :is(input, textarea, select) {
   width: 100%; min-width: 0; max-width: 100%; padding: 6px 10px;
   border: 1px solid var(--line); border-radius: var(--r);
-  font: inherit; font-size: 16px; color: var(--fg); background: var(--canvas);
+  font: inherit; font-size: 16px; color: var(--fg); background-color: var(--canvas);
 }
-.field textarea { resize: vertical; min-height: 100px; }
+/* Keep room for the global select chevron, so a dropdown reads as one. */
+.field select { padding-right: 30px; }
+/* Grows with the answer up to about 16 lines, then scrolls. */
+.field textarea { resize: vertical; field-sizing: content; min-height: 100px; max-height: 16lh; }
 /* Doubled class outranks the Auto Apply page's grid labels. */
 label.choice.choice { display: flex; align-items: baseline; gap: 8px; padding: 5px 0; }
 .choice input { flex: 0 0 auto; }

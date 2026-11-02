@@ -16,7 +16,7 @@ import {
   PairResponseSchema, EventResponseSchema,
 } from "../lib/applications/worker-protocol.ts";
 import { InterventionPollSchema, InterventionPageSchema } from "../lib/applications/question-protocol.ts";
-import { ProviderConfigRequestSchema, ProviderConfigSchema } from "../lib/applications/provider-protocol.ts";
+import { ProviderConfigRequestSchema } from "../lib/applications/provider-protocol.ts";
 
 const ownerId = "synthetic-cli-owner";
 const clock = () => ({ protocolVersion: 1, serverTime: Date.now(), heartbeatMs: 20000, leaseMs: 120000 });
@@ -35,10 +35,10 @@ async function fixture(t, handler) {
         assert.match(req.headers.authorization ?? "", /^Bearer [A-Za-z0-9_-]{43}$/);
         assert.equal(req.headers.cookie, undefined);
         ProviderConfigRequestSchema.parse(await body(req));
-        return json(res, ProviderConfigSchema, { providerProtocolVersion: 1, ownerId, profileRevision: 0,
-          policyRevision: 0, policyVersion: 0, policyHash: null, enabled: false, provider: "none",
-          model: null, endpoint: null, privacy: "local_inference_only", remoteProviderConsent: false,
-          allowedProviders: [], fallbackOrder: [], maxUsd: 0 });
+        // An older control-v1 server without provider config: the worker runs no stages, so every lease it takes is
+        // reported unsupported. (A disabled provider no longer does that: its stages run and the provider can be enabled later.)
+        res.writeHead(404, { "content-type": "application/json" });
+        return res.end(JSON.stringify({ error: "Not found." }));
       }
       return handler(req, res);
     }).catch(error => { errors.push(error); res.destroy(); });

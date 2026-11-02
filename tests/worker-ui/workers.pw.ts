@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { SUBMIT_APPROVAL } from '../../lib/applications/state';
 import { PAIRING_TTL_MS, PARKED_STEPS } from '../../lib/applications/worker-protocol';
 import { WorkerFixture, syntheticGrant, workerId } from './fixture';
@@ -55,6 +55,12 @@ async function refresh(page: Page) {
   await settings(page).getByRole('button', { name: 'Refresh', exact: true }).click();
   await expect.poll(() => fixtures.get(page)!.requests.length).toBeGreaterThan(before);
   await expect(checking(page)).toHaveCount(0);
+}
+/** A dropdown shows the global chevron: its SVG background, with room for it on the right. */
+async function expectChevron(select: Locator) {
+  const style = await select.evaluate((node) => ({ image: getComputedStyle(node).backgroundImage, padding: parseFloat(getComputedStyle(node).paddingRight) }));
+  expect(style.image).toContain('data:image/svg+xml');
+  expect(style.padding).toBeGreaterThanOrEqual(24);
 }
 /** Closing the drawer with a request unresolved is refused, as leaving the Workers page was. */
 async function tryToLeave(page: Page) {
@@ -514,6 +520,115 @@ test('Live shows a form the worker starts filling after the page loaded, at its 
   const live = page.getByRole('list', { name: 'Live', exact: true });
   await expect(live.getByText(/^Filling the form · updated/)).toBeVisible({ timeout: 10_000 });
   await expect(live.getByRole('img', { name: 'Workie\'s browser filling the fixture-employer application', exact: true })).toBeVisible();
+});
+
+// Two tabs on Live can spend the applicant's 60-a-minute private limit; a 429 used to replace the page with Sign in.
+test('Live keeps its card through a rate limit and updates at the next poll that succeeds', async ({ page }) => {
+  const fixture = fixtures.get(page)!;
+  fixture.addRun();
+  const app = fixture.addApplication('filling');
+  fixture.frames = [{ applicationId: app.id, step: 'Filling the form', image: PIXEL, fields: null, updatedAt: Date.now() }];
+  await page.goto('/applications?view=live');
+  const live = page.getByRole('list', { name: 'Live', exact: true });
+  await expect(live.getByText(/^Filling the form · updated/)).toBeVisible();
+  fixture.rateLimited = true;
+  // The full refresh (once a minute and on focus) is what locked the page, not the frame poll.
+  const refused = page.waitForResponse((response) => response.url().endsWith('/api/workers') && response.status() === 429);
+  await page.evaluate(() => window.dispatchEvent(new Event('workie:refresh')));
+  await refused;
+  // A frame poll after that refusal is refused too, and the page has handled both.
+  await page.waitForResponse((response) => response.url().endsWith('/api/applications/live') && response.status() === 429);
+  await expect(live.getByText(/^Filling the form · updated/)).toBeVisible();
+  await expect(page.getByText('Private application status is unavailable.', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toHaveCount(0);
+  fixture.rateLimited = false;
+  fixture.frames[0] = { ...fixture.frames[0], step: 'Filling the form, page 2', updatedAt: Date.now() };
+  await expect(live.getByText(/^Filling the form, page 2 · updated/)).toBeVisible({ timeout: 10_000 });
+});
+
+// A filled form waiting for Apply takes answer changes on the Live card and in its full-screen panel, not only in the Approve dialog.
+test('Live card awaiting approval changes a filled free-text answer and a dropdown answer', async ({ page }) => {
+  const fixture = fixtures.get(page)!;
+  fixture.addRun();
+  const app = fixture.addApplication('needs_policy_decision', SUBMIT_APPROVAL);
+  const why = `form-${'a'.repeat(32)}`, pronouns = `form-${'b'.repeat(32)}`;
+  fixture.frames = [{ applicationId: app.id, step: PARKED_STEPS.approval, image: PIXEL, updatedAt: Date.now(), fields: [
+    { label: 'Why are you interested?', value: 'Workie wrote this.', key: why, kind: 'textarea' },
+    { label: 'Pronouns', value: 'he/him', key: pronouns, kind: 'select', options: ['he/him', 'she/her', 'they/them'] },
+    { label: 'Resume', value: 'resume.pdf', key: `form-${'c'.repeat(32)}`, kind: 'file' }] }];
+  await page.goto('/applications?view=live');
+  const card = page.getByRole('list', { name: 'Live', exact: true }).getByRole('listitem');
+  // A file is attached, not typed: it has no Change.
+  await expect(card.getByRole('button', { name: /^Change the answer to/ })).toHaveCount(2);
+  await card.getByRole('button', { name: 'Change the answer to Why are you interested?', exact: true }).click();
+  await card.getByLabel('New answer', { exact: true }).fill('I use Fixture Co every week.\nAnd I want to make it faster.');
+  await card.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(card.getByText('Changed by you. Workie types this in when you press Apply.')).toBeVisible();
+  await expect(card.locator('dd').first()).toContainText('I use Fixture Co every week.');
+  // The full-screen panel edits the same list; a dropdown offers every option the form has.
+  await page.getByRole('button', { name: 'Full screen', exact: true }).click();
+  const full = page.getByRole('dialog', { name: 'fixture-employer application, full screen', exact: true });
+  await full.getByRole('button', { name: 'Change the answer to Pronouns', exact: true }).click();
+  const select = full.getByLabel('New answer', { exact: true });
+  await expect(select.locator('option')).toHaveText(['he/him', 'she/her', 'they/them']);
+  await expectChevron(select);
+  await select.selectOption('they/them');
+  await full.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(full.locator('dd').nth(1)).toContainText('they/them');
+  await expect(full.getByText('Changed by you. Workie types this in when you press Apply.')).toHaveCount(2);
+  expect(fixture.writes.map((request) => [request.path, request.body])).toEqual([
+    [`/api/applications/${app.id}/answers`, { edits: { [why]: 'I use Fixture Co every week.\nAnd I want to make it faster.' } }],
+    [`/api/applications/${app.id}/answers`, { edits: { [pronouns]: 'they/them' } }]]);
+});
+
+// A form's free-response question is a textarea that grows with the answer; choice questions list every choice.
+test('a card waiting on answers names the employer its questions name, not the board tenant', async ({ page }) => {
+  const fixture = fixtures.get(page)!;
+  fixture.addRun();
+  const app = fixture.addApplication('needs_answer', 'question_unresolved');
+  const text = { allowBlank: false, declineValue: null, units: null, precision: null, type: 'text', minLength: 1, maxLength: 4000, format: 'plain' } as const;
+  // Two questions: with one, Answer opens it directly, which reads it from an endpoint this fixture does not serve.
+  fixture.addQuestion(app, 'Why are you interested in Fixture Co?', text);
+  fixture.addQuestion(app, 'Pronouns', text);
+  await page.goto('/applications');
+  await expect(page.getByRole('list', { name: 'Needs action', exact: true }).getByRole('heading', { level: 2 })).toHaveText('Fixture Co / Intern');
+  await page.getByRole('button', { name: 'Answer', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Answer / Fixture Co', exact: true })).toBeVisible();
+  await page.goto('/applications?view=live');
+  await expect(page.getByRole('list', { name: 'Live', exact: true }).getByRole('heading', { level: 2 })).toHaveText('Fixture Co / Intern');
+  await expect(page.getByText('fixture-employer')).toHaveCount(0);
+});
+
+test('question form grows a textarea answer and lists every choice', async ({ page }) => {
+  const fixture = fixtures.get(page)!;
+  fixture.addRun();
+  const app = fixture.addApplication('needs_answer', 'question_unresolved');
+  const base = { allowBlank: false, declineValue: null, units: null, precision: null };
+  const choices = (...labels: string[]) => labels.map((label) => ({ value: label, label }));
+  fixture.addQuestion(app, 'Why are you interested in Fixture Co?', { ...base, type: 'textarea', minLength: 1, maxLength: 4000, format: 'plain' });
+  fixture.addQuestion(app, 'Which office?', { ...base, type: 'select', options: choices('New York', 'San Francisco', 'Remote'), minSelections: 1, maxSelections: 1 });
+  fixture.addQuestion(app, 'Can you start in May?', { ...base, type: 'radio', options: choices('Yes', 'No'), minSelections: 1, maxSelections: 1 });
+  fixture.addQuestion(app, 'Which languages?', { ...base, type: 'multiselect', options: choices('English', 'Korean', 'French'), minSelections: 1, maxSelections: 3 });
+  await page.goto('/applications?view=live');
+  await page.getByRole('button', { name: 'Answer', exact: true }).click();
+  const form = page.getByRole('form', { name: 'Answer questions', exact: true });
+  const why = form.getByRole('textbox', { name: 'Why are you interested in Fixture Co?', exact: true });
+  await expect(why).toHaveJSProperty('tagName', 'TEXTAREA');
+  const before = (await why.boundingBox())!.height;
+  await why.fill(Array.from({ length: 10 }, (_, line) => `Line ${line + 1} of why I want this role.`).join('\n'));
+  const after = (await why.boundingBox())!.height;
+  expect(after).toBeGreaterThan(before + 50);
+  // It grows instead of scrolling inside.
+  expect(await why.evaluate((node) => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
+  await why.fill('Short.');
+  await expect.poll(async () => (await why.boundingBox())!.height).toBeLessThan(after);
+  await expect(form.getByRole('combobox', { name: 'Which office?', exact: true }).locator('option'))
+    .toHaveText(['Choose...', 'New York', 'San Francisco', 'Remote']);
+  await expectChevron(form.getByRole('combobox', { name: 'Which office?', exact: true }));
+  for (const [group, options] of [['Can you start in May?', ['Yes', 'No']], ['Which languages?', ['English', 'Korean', 'French']]] as const) {
+    const set = form.getByRole('group', { name: group, exact: true });
+    for (const option of options) await expect(set.getByLabel(option, { exact: true })).toBeVisible();
+  }
 });
 
 test('sidebar keeps a fixed width, ignores a stale saved width, and collapses to the rail', async ({ page }, info) => {

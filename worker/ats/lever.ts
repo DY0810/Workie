@@ -61,7 +61,7 @@ export async function leverFields(form: Locator): Promise<AtsField[]> {
       }
       fields.set(input.name, { name: input.name, label, required,
         kind: input.type === 'file' ? 'file' : input.type === 'radio' ? 'radio' : input.type === 'checkbox' ? 'checkbox' :
-          node instanceof HTMLSelectElement ? 'select' : input.type === 'email' ? 'email' : 'text',
+          node instanceof HTMLSelectElement ? 'select' : input.type === 'email' ? 'email' : input.type === 'textarea' ? 'textarea' : 'text',
         options: input.type === 'radio' || input.type === 'checkbox' ? [input.value] :
           node instanceof HTMLSelectElement ? [...node.options].filter(option => option.value).map(option => option.label.trim()).filter(Boolean) : undefined });
     }

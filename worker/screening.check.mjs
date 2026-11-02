@@ -75,6 +75,10 @@ test('unknown employer fields become scoped inbox questions with exact wording',
     description: 'I acknowledge that I have read the Arbitration Agreement.', kind: 'checkbox', required: true }]));
   assert.equal(described.questions[0].originalWording, 'Applicant Arbitration Agreement\n\nI acknowledge that I have read the Arbitration Agreement.');
   assert.equal(described.questions[0].key, formQuestionKey({ key: 'question_9', label: 'Applicant Arbitration Agreement' }));
+  // A form textarea is asked as one, so the inbox gives the answer room; a one-line input stays text.
+  const prose = QuestionDispatchSchema.parse(formQuestions(context, [{ key: 'question_10', label: 'Why us?', kind: 'textarea', required: true },
+    { key: 'question_11', label: 'Pronouns', kind: 'text', required: true }]));
+  assert.deepEqual(prose.questions.map(q => q.field.type), ['textarea', 'text']);
 });
 
 test('a fill keeps going past rejected answers so the whole form is asked at once', async () => {

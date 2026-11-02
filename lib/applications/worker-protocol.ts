@@ -124,7 +124,7 @@ export const SubmittedLetterAckSchema = z.strictObject({ applicationId: uuid, st
 // A review row names its form question (formQuestionKey), kind and choices so the applicant can change it before Apply.
 // Older workers send label and value only; those rows stay read-only.
 const reviewField = { label: z.string().min(1).max(1000), value: z.string().max(4000), key: z.string().regex(/^form-[0-9a-f]{32}$/).optional(),
-  kind: z.enum(['text', 'email', 'date', 'select', 'combobox', 'radio', 'checkbox', 'file']).optional(),
+  kind: z.enum(['text', 'textarea', 'email', 'date', 'select', 'combobox', 'radio', 'checkbox', 'file']).optional(),
   options: z.array(z.string().trim().min(1).max(300)).max(100).optional(), multiple: z.literal(true).optional() };
 const liveFields = z.array(z.strictObject(reviewField)).max(64);
 /** An answer the applicant changed in review: the worker types it in at submit. Only the server stores it; workers never send it. */

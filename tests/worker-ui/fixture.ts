@@ -3,14 +3,14 @@ import { z } from 'zod';
 import { inLive } from '../../lib/applications/buckets';
 import { DiscoveryStatusSchema, ReapplyRequestSchema } from '../../lib/applications/discovery-protocol';
 import { createEmptyPolicy, PolicySchema } from '../../lib/applications/policy';
-import { InboxPageSchema } from '../../lib/applications/question-protocol';
+import { InboxPageSchema, QuestionDetailSchema, type QuestionDetail, type QuestionField } from '../../lib/applications/question-protocol';
 import { isTerminalState } from '../../lib/applications/state';
 import {
   ApplicationCommandSchema, ApplicationSummarySchema, LiveListSchema, MaterialsSchema, PairingCreateSchema, PairingGrantSchema,
   PAIRING_TTL_MS, RevisionCommandSchema, RevocationSchema, RunCommandSchema, RunCreateSchema,
-  RunListSchema, RunSchema, VerificationCodeAckSchema, VerificationCodeSchema, WorkerListSchema, WorkerScheduleAckSchema,
-  WorkerScheduleSchema, WorkerSummarySchema,
-  type ApplicationSummary, type PairingSummary, type Run, type WorkerSummary,
+  ReviewEditsAckSchema, ReviewEditsSchema, RunListSchema, RunSchema, VerificationCodeAckSchema, VerificationCodeSchema, WorkerListSchema,
+  WorkerScheduleAckSchema, WorkerScheduleSchema, WorkerSummarySchema,
+  type ApplicationSummary, type PairingSummary, type ReviewedField, type Run, type WorkerSummary,
 } from '../../lib/applications/worker-protocol';
 
 export const ownerA = 'synthetic-owner-a', ownerB = 'synthetic-owner-b';
@@ -38,7 +38,9 @@ export class WorkerFixture {
   /** Discovery status answers only once this settles, like a slow status read. */
   discoveryGate: Promise<void> = Promise.resolve();
   /** Live frames; as listLive does, each is sent with its row's current state, and only while the row is in Live. */
-  frames: { applicationId: string; step: string; image: string | null; fields: { label: string; value: string }[] | null; updatedAt: number }[] = [];
+  frames: { applicationId: string; step: string; image: string | null; fields: ReviewedField[] | null; updatedAt: number }[] = [];
+  /** Open inbox questions, each on its application. */
+  questions: QuestionDetail[] = [];
   policy = {
     revision: 2, policy: PolicySchema.parse({ ...createEmptyPolicy(), actions: ['read_jobs'],
       destinations: ['employer.example.test'], countries: ['US'] }),
@@ -48,6 +50,8 @@ export class WorkerFixture {
   requests: Request[] = [];
   loseNext = false;
   failHead = false;
+  /** The applicant's per-minute private request limit is spent, as a second tab on Live spends it. */
+  rateLimited = false;
   invalidState = false;
   beforeWrite?: () => Promise<void>;
   afterWrite?: () => Promise<void>;
@@ -66,8 +70,22 @@ export class WorkerFixture {
     this.applications.push(app);
     return app;
   }
+  /** A form question the worker asked for this application, as the inbox sends it. */
+  addQuestion(app: ApplicationSummary, wording: string, field: QuestionField) {
+    const question = QuestionDetailSchema.parse({ id: crypto.randomUUID(), ownerId: this.owner, revision: 1,
+      descriptor: { key: `form-${crypto.randomUUID().replaceAll('-', '')}`, kind: 'needs_answer', originalWording: wording,
+        reason: 'Required field on the official application.', required: true, meaning: { id: wording, reviewId: null }, schemaVersion: 1,
+        scope: { kind: 'application', country: null, employer: null, applicationId: app.id, includesSubsidiaries: false, timeframe: 'current',
+          validFrom: null, validUntil: null, ats: app.ats, tenant: app.tenant, version: 1 },
+        provenance: { source: 'system', sourceId: null, sourceVersion: null, excerpt: wording }, field, factIds: [], sensitive: true },
+      application: { id: app.id, workerId, ats: app.ats, tenant: app.tenant, requisition: app.requisition, company: 'Fixture Co', role: 'Intern' },
+      waitingCount: 1, resolved: false, expectedProfileRevision: 1, expectedPolicyRevision: 1, expectedScopeHash: 'b'.repeat(64),
+      factVersions: [], allowedReuse: ['application'], canAnswer: true, canBlank: false, canDecline: false, focus: null });
+    this.questions.push(question);
+    return question;
+  }
   switchOwner() {
-    this.owner = ownerB; this.workers = []; this.pairings = []; this.runs = []; this.applications = [];
+    this.owner = ownerB; this.workers = []; this.pairings = []; this.runs = []; this.applications = []; this.questions = [];
   }
   async handle(path: string, method: string, headers: Headers, body: Record<string, unknown> | null): Promise<Reply> {
     const request = { path, method, owner: headers.get('x-workie-applicant'), body };
@@ -88,10 +106,12 @@ export class WorkerFixture {
         ownerId: this.owner, keyVersion: '1', key: btoa('s'.repeat(32)),
       } };
       if (path === '/api/inbox') return reply(InboxPageSchema, {
-        ownerId: this.owner, unread: 0, unresolved: 0, waitingApplications: 0,
-        serverTime: this.now, items: [], nextCursor: null,
+        ownerId: this.owner, unread: 0, unresolved: this.questions.length, waitingApplications: new Set(this.questions.map((q) => q.application.id)).size,
+        serverTime: this.now, nextCursor: null, items: this.questions.map((question) => ({
+          eventId: question.id, applicationId: question.application.id, kind: 'needs_answer', createdAt: this.now, read: true, question })),
       });
       if (this.failHead) return error(503, 'UNAVAILABLE');
+      if (this.rateLimited) return error(429, 'RATE_LIMITED');
       if (path === '/api/workers') return reply(WorkerListSchema, {
         ownerId: this.owner, serverTime: this.now, workers: this.workers, pairings: this.pairings,
       });
@@ -121,6 +141,18 @@ export class WorkerFixture {
     assert.ok(body);
     const code = /^\/api\/applications\/([^/]+)\/verification-code$/.exec(path);
     if (code) { VerificationCodeSchema.parse(body); return reply(VerificationCodeAckSchema, { applicationId: code[1], stored: true }); }
+    // A change to a filled answer before Apply: kept on the frame's row (null takes it back), as setReviewEdits does.
+    const answers = /^\/api\/applications\/([^/]+)\/answers$/.exec(path);
+    if (answers) {
+      const fields = this.frames.find((frame) => frame.applicationId === answers[1])?.fields;
+      if (!fields) return error(404, 'NOT_FOUND');
+      for (const [key, edit] of Object.entries(ReviewEditsSchema.parse(body).edits)) {
+        const field = fields.find((row) => row.key === key);
+        if (!field) return error(409, 'CONFLICT');
+        if (edit === null) delete field.edit; else field.edit = edit;
+      }
+      return reply(ReviewEditsAckSchema, { applicationId: answers[1], fields });
+    }
     const schema = path === '/api/workers/pairings' ? PairingCreateSchema :
       method === 'DELETE' ? RevisionCommandSchema : method === 'PATCH' ? WorkerScheduleSchema : path === '/api/application-runs' ? RunCreateSchema :
         path.endsWith('/retry-unsubmitted') || path.endsWith('/restart') ? ReapplyRequestSchema : path.includes('/applications/') ? ApplicationCommandSchema : RunCommandSchema;

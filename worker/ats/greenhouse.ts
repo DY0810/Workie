@@ -94,7 +94,7 @@ export async function hostedFields(form: import('playwright').Locator): Promise<
     return { key, label: label.trim().replace(/\*\s*$/, '').trim(), ...(description ? { description } : {}),
       kind: group ? 'radio' : input.type === 'file' ? 'file' : input.getAttribute('role') === 'combobox' ? 'combobox' :
         input.tagName === 'SELECT' ? 'select' : input.type === 'checkbox' ? 'checkbox' : input.type === 'radio' ? 'radio' :
-          input.type === 'email' ? 'email' : 'text',
+          input.type === 'email' ? 'email' : input.type === 'textarea' ? 'textarea' : 'text',
       // A hosted upload marks "required" only with an asterisk in its upload label, never on the input.
       required: input.id === 'resume' || input.getAttribute('aria-required') === 'true' || input.required ||
         fieldset?.getAttribute('aria-required') === 'true' || Boolean(document.getElementById(`upload-label-${input.id}`)?.querySelector('.required')),

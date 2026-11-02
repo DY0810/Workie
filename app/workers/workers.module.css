@@ -12,6 +12,7 @@
 .page label:not(aside *) { display: grid; gap: 5px; font-size: 12px; min-width: 0; }
 .page input:not([type="checkbox"]):not([type="radio"]), .page select:not(aside *) { min-width: 0; max-width: 100%; width: 100%; border: 1px solid var(--line); border-radius: var(--r); padding: 6px 10px; min-height: 34px; color: var(--fg); background-color: var(--white); font: inherit; }
 .page select option { background: var(--canvas); }
+.page select:not(aside *) { padding-right: 30px; }
 .page :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Links sit inline with plain text here, so they need a resting underline to read as links. */
 .page a:not(aside *) { text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
@@ -84,6 +85,7 @@ dialog .issue { margin-bottom: 12px; }
 .review dd > .button { margin-top: 4px; }
 .reviewEdit { display: grid; gap: 6px; white-space: normal; }
 .reviewEdit textarea, .reviewEdit select { width: 100%; min-width: 0; font: inherit; }
+.reviewEdit textarea { field-sizing: content; min-height: 3lh; max-height: 16lh; resize: vertical; }
 .reviewEdit fieldset { display: grid; gap: 4px; margin: 0; padding: 0; border: 0; }
 dialog .screen { margin: 8px 0 12px; }
 .liveCard .screen { cursor: zoom-in; }

@@ -114,7 +114,7 @@ function formField(field: AtsField, options = field.options) {
   return choices.length && choices.length <= 100
     ? { type: multiple ? 'multiselect' as const : 'select' as const, allowBlank: false, declineValue: null, units: null, precision: null,
       options: choices.map(option => ({ value: option, label: option })), minSelections: 1, maxSelections: multiple ? choices.length : 1 }
-    : { type: 'text' as const, allowBlank: false, declineValue: null, units: null, precision: null,
+    : { type: field.kind === 'textarea' ? 'textarea' as const : 'text' as const, allowBlank: false, declineValue: null, units: null, precision: null,
       minLength: 1, maxLength: 4000, format: 'plain' as const };
 }
 

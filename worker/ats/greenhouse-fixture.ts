@@ -8,6 +8,8 @@ const combobox = (id: string, label: string) => `<label id="${id}-label" for="${
   <div class="select__control"><div class="select__single-value"></div><input id="${id}" name="${id}" role="combobox" aria-required="true"></div>`;
 const text = (id: string, label: string, required = true, tag = 'input') => `<label id="${id}-label" for="${id}">${label}${required ? '*' : ''}</label>
   <${tag} id="${id}" name="${id}" ${required ? 'aria-required="true"' : ''}>${tag === 'textarea' ? '</textarea>' : ''}`;
+// A native <select> with a blank first option, as Greenhouse's older custom questions render; no profile fact answers it.
+export const HEARD = ['LinkedIn', 'University career fair', 'Company website', 'Referral', 'Other'];
 export const FIXTURE_FORM = `<!doctype html><title>Job Application for Software Engineering Intern at Fixture Co</title>
 <form id="application-form">
   ${text('first_name', 'First Name')}${text('last_name', 'Last Name')}${text('email', 'Email')}${text('phone', 'Phone', false)}
@@ -19,6 +21,9 @@ export const FIXTURE_FORM = `<!doctype html><title>Job Application for Software 
   ${combobox('question_102', 'Are you legally authorized to work in the country for which you are applying?')}
   ${combobox('question_103', 'Will you now or in the future require sponsorship for employment visa status (e.g., H-1B visa)?')}
   ${text('question_104', 'Why are you interested in Fixture Co?', true, 'textarea')}
+  <label id="question_105-label" for="question_105">How did you hear about this job?*</label>
+  <select id="question_105" name="question_105" aria-required="true"><option value=""></option>${
+    HEARD.map(option => `<option>${option}</option>`).join('')}</select>
   <button type="button" id="submit">Submit application</button>
 </form>
 <script>
@@ -57,7 +62,7 @@ document.getElementById('submit').onclick = async () => {
   const base64 = async file => { let out = ''; for (const byte of new Uint8Array(await file.arrayBuffer())) out += String.fromCharCode(byte); return btoa(out); };
   const files = {}, fields = {};
   for (const input of document.querySelectorAll('input[type=file]')) if (input.files.length) files[input.id] = { name: input.files[0].name, base64: await base64(input.files[0]) };
-  for (const input of document.querySelectorAll('#application-form input:not([type=file]), #application-form textarea')) {
+  for (const input of document.querySelectorAll('#application-form input:not([type=file]), #application-form textarea, #application-form select')) {
     fields[input.id] = input.getAttribute('role') === 'combobox' ? input.closest('.select__control').textContent.trim() : input.value;
   }
   await fetch(location.pathname + '/capture', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fields, files }) });
