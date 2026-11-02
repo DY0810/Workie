@@ -6,13 +6,13 @@ import { applicationArtifacts, applicationEvents, applicationLive, applicationRe
 import { artifactRequestId, type ApplicationArtifactManifest } from './artifact-protocol.ts';
 import { hashValue } from './stores.ts';
 import { appScope, fail, withWorker, type WorkerOptions } from './worker-store.ts';
-import { SubmittedLetterSchema } from './worker-protocol.ts';
+import { SubmittedLetterSchema, type ReviewedField } from './worker-protocol.ts';
 
 /** What each application sent: its tailored resume (with the lines that changed), its cover letter and, once submitted, its filled answers. */
 type Letter = { letter: 'submitted'; introduction: string; body: string[]; conclusion: string; companyParagraph: string };
 type Material = { applicationId: string;
   resume: { documentId: string; mime: string; createdAt: number; changes: { before: string; after: string }[] } | null;
-  letter: Omit<Letter, 'letter'> | null; answers: { label: string; value: string }[] | null };
+  letter: Omit<Letter, 'letter'> | null; answers: ReviewedField[] | null };
 
 /** Worker call when the form is filled (or after a verified receipt): keeps the cover letter, once, in the event log. */
 export async function recordSubmittedLetter(db: PrivateDb, token: string, applicationId: string, input: unknown, options: WorkerOptions = {}) {

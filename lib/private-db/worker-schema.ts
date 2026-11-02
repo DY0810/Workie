@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { policyVersions, user } from './schema.ts';
 import { APPLICATION_STATES } from '../applications/state.ts';
-import type { Checkpoint } from '../applications/worker-protocol.ts';
+import type { Checkpoint, ReviewedField } from '../applications/worker-protocol.ts';
 
 export const workerPairings = sqliteTable('private_worker_pairing', {
   id: text('id').primaryKey(),
@@ -145,7 +145,7 @@ export const applicationLive = sqliteTable('private_application_live', {
   step: text('step').notNull(),
   // A JPEG screenshot, base64; dropped when the worker leaves the application.
   image: text('image'),
-  fields: text('fields', { mode: 'json' }).$type<{ label: string; value: string }[]>(),
+  fields: text('fields', { mode: 'json' }).$type<ReviewedField[]>(),
   // An emailed security code the applicant entered on Workie; the worker takes it once and types it into the form.
   verificationCode: text('verification_code'),
   updatedAt: integer('updated_at').notNull(),

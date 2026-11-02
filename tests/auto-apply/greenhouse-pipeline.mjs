@@ -202,6 +202,14 @@ test('Greenhouse pipeline tailors the resume, asks only the new question, writes
       assert.ok(review.some(field => field.label === 'First Name' && field.value === 'Test'));
       assert.equal(calls.live.at(-1).step, 'Filled. Waiting for your approval');
       assert.ok(calls.live.findLast(frame => frame.image !== undefined)?.image, 'the filled form stays for review');
+      // The applicant changes two answers in review, one the inbox gave and one from the profile; the server hands them back
+      // in the context under each row's question key (see setReviewEdits), and Apply types them in.
+      const row = label => review.find(field => field.label === label);
+      assert.equal(row('Why are you interested in Fixture Co?').kind, 'text');
+      assert.equal(row('Resume/CV').kind, 'file');
+      const EDITED = 'I use Fixture Co tools every week and want to make them faster.', LINKEDIN = 'https://linkedin.com/in/edited';
+      context.answers[row('Why are you interested in Fixture Co?').key] = EDITED;
+      context.answers[row('LinkedIn Profile').key] = LINKEDIN;
       const printed = [], write = process.stdout.write;
       process.stdout.write = (chunk, ...rest) => { printed.push(String(chunk)); return write.call(process.stdout, chunk, ...rest); };
       // The applicant enters the emailed code on Workie, mistyped first; the worker types each into the form and submits again.
@@ -220,7 +228,7 @@ test('Greenhouse pipeline tailors the resume, asks only the new question, writes
       assert.equal(calls.receipt.evidence.pageUrl, `${URL_BASE}${JOB}/confirmation`);
       const { fields, files } = calls.captured;
       assert.deepEqual(fields, { first_name: 'Test', last_name: 'Applicant', email: 'test@example.com', phone: '(415) 555-0123', country: '+1',
-        question_101: 'https://linkedin.com/in/test', question_102: 'Yes', question_103: 'No', question_104: NARRATIVE });
+        question_101: LINKEDIN, question_102: 'Yes', question_103: 'No', question_104: EDITED });
       assert.equal(sha256(Buffer.from(files.resume.base64, 'base64')), context.tailoredArtifact.outputHash, 'the tailored resume is the one submitted');
       assert.match(files.resume.name, /^TestApplicant_Resume\.(docx|pdf)$/, 'the employer receives the resume under the applicant\'s name');
       assert.equal(calls.letter.at(-1).jobSummary, JD);

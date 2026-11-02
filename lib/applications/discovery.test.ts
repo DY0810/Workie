@@ -26,6 +26,7 @@ import {
 } from './discovery.ts';
 import { previewLegacyImport, confirmLegacyImport } from './imports.ts';
 import { applicationContext } from './application-context.ts';
+import { recordLiveFrame, setReviewEdits } from './live.ts';
 import { answerQuestion, getQuestion, registerQuestionBatch } from './questions.ts';
 import { formQuestions } from '../../worker/screening.ts';
 import { formQuestionKey, type AtsField } from '../../worker/ats/protocol.ts';
@@ -34,6 +35,7 @@ import * as source from './discovery-source.ts';
 import { getDiscoveryCorpus } from './discovery-corpus.ts';
 import type { WorkerOptions } from './worker-store.ts';
 import { LEASE_MS, SUBMIT_WAIT_MS, type Lease } from './worker-protocol.ts';
+import { SUBMIT_APPROVAL } from './state.ts';
 
 import { stubHousehold } from '../test-household.ts';
 vi.mock('server-only', () => ({}));
@@ -855,6 +857,38 @@ describe('cap-held backlog and explicit historical attempts', () => {
     await ask(retry); // Resolved from the earlier attempt's answer.
     expect((await appRows()).find((a) => a.id === next.id)).toMatchObject({ state: 'screening', reasonCode: null });
     expect((await contextFor((await poll(token)).lease!)).answers[formQuestionKey(field)]).toBe('Stanford University');
+  });
+
+  it('hands the worker the answers the applicant changed while reviewing the filled form, and only those the form takes', async () => {
+    const { token, run } = await prepared('alice', { actions: ['read_jobs', 'fill_forms'] }); addPostings(1); await complete(token, run.id);
+    const lease = (await poll(token)).lease!;
+    const why = { key: 'question_104', label: 'Why are you interested?' }, office = { key: 'question_102', label: 'In the office?' };
+    const fields = [
+      { label: why.label, value: 'Workie wrote this.', key: formQuestionKey(why), kind: 'text' as const },
+      { label: office.label, value: 'Yes', key: formQuestionKey(office), kind: 'select' as const, options: ['Yes', 'No'] },
+      { label: 'Resume/CV', value: 'Resume.pdf', key: formQuestionKey({ key: 'resume', label: 'Resume/CV' }), kind: 'file' as const },
+      { label: 'Old worker row', value: 'read-only' }];
+    await recordLiveFrame(db, token, lease.applicationId, { protocolVersion: 1, step: 'Filled. Waiting for your approval', fields }, options);
+    const edit = (edits: Record<string, unknown>) => setReviewEdits(db, 'alice', lease.applicationId, { edits });
+    // Only a form waiting on the applicant's approval can be changed.
+    await expect(edit({ [fields[0].key!]: 'Mine.' })).rejects.toMatchObject({ status: 409 });
+    await db.update(applications).set({ state: 'needs_policy_decision', reasonCode: SUBMIT_APPROVAL, leaseUntil: null, leaseCheckedAt: null }).where(eq(applications.id, lease.applicationId));
+    await expect(setReviewEdits(db, 'bob', lease.applicationId, { edits: { [fields[0].key!]: 'Mine.' } })).rejects.toMatchObject({ status: 409 });
+    await expect(edit({ [fields[1].key!]: 'Maybe' })).rejects.toMatchObject({ status: 400 });
+    await expect(edit({ [fields[2].key!]: 'Other.pdf' })).rejects.toMatchObject({ status: 400 });
+    await expect(edit({ [formQuestionKey({ key: 'question_9', label: 'Not on the form' })]: 'x' })).rejects.toMatchObject({ status: 400 });
+    const saved = await edit({ [fields[0].key!]: '  I use it every day.  ', [fields[1].key!]: 'No' });
+    expect(saved.fields.map((field) => field.edit)).toEqual(['I use it every day.', 'No', undefined, undefined]);
+    // The worker fills the form again to submit it: the context carries the changes under each question's key.
+    await db.update(applications).set({ state: 'ready', reasonCode: null, leaseUntil: null, leaseCheckedAt: null }).where(eq(applications.id, lease.applicationId));
+    const submit = (await poll(token)).lease!;
+    const answers = (await applicationContext(db, token, submit.applicationId, { protocolVersion: 1, ...ref(submit) }, { ...options, corpus: provider })).answers;
+    expect([answers[formQuestionKey(why)], answers[formQuestionKey(office)]]).toEqual(['I use it every day.', 'No']);
+    // A form filled again keeps the changes beside the worker's new answers.
+    await recordLiveFrame(db, token, submit.applicationId, { protocolVersion: 1, step: 'Filled. Waiting for your approval',
+      fields: fields.map((field) => ({ ...field, value: 'Again' })) }, options);
+    await db.update(applications).set({ state: 'needs_policy_decision', reasonCode: SUBMIT_APPROVAL, leaseUntil: null, leaseCheckedAt: null }).where(eq(applications.id, lease.applicationId));
+    expect((await edit({ [fields[1].key!]: null })).fields.map((field) => field.edit)).toEqual(['I use it every day.', undefined, undefined, undefined]);
   });
 
   it("hands another role the answer to a same-worded form question, under that form's own field key", async () => {

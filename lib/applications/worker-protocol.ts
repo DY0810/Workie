@@ -121,7 +121,22 @@ const letterText = { introduction: paragraph, body: z.array(paragraph).min(1).ma
 export const SubmittedLetterSchema = z.strictObject({ ...protocol, ...letterText });
 export const SubmittedLetterAckSchema = z.strictObject({ applicationId: uuid, stored: z.literal(true) });
 // A screenshot of the application tab while the worker works it; omitted keeps the last one, null drops it.
-const liveFields = z.array(z.strictObject({ label: z.string().min(1).max(1000), value: z.string().max(4000) })).max(64);
+// A review row names its form question (formQuestionKey), kind and choices so the applicant can change it before Apply.
+// Older workers send label and value only; those rows stay read-only.
+const reviewField = { label: z.string().min(1).max(1000), value: z.string().max(4000), key: z.string().regex(/^form-[0-9a-f]{32}$/).optional(),
+  kind: z.enum(['text', 'email', 'date', 'select', 'combobox', 'radio', 'checkbox', 'file']).optional(),
+  options: z.array(z.string().trim().min(1).max(300)).max(100).optional(), multiple: z.literal(true).optional() };
+const liveFields = z.array(z.strictObject(reviewField)).max(64);
+/** An answer the applicant changed in review: the worker types it in at submit. Only the server stores it; workers never send it. */
+export const ReviewEditSchema = z.union([z.string().trim().min(1).max(4000), z.boolean(), z.array(z.string().trim().min(1).max(300)).min(1).max(100)]);
+const reviewedFields = z.array(z.strictObject({ ...reviewField, edit: ReviewEditSchema.optional() })).max(64);
+export type ReviewedField = z.infer<typeof reviewedFields>[number];
+/** At most this many changed answers per form, so they fit the worker context's 64 answers beside the profile's. */
+export const MAX_REVIEW_EDITS = 16;
+// null takes a change back.
+export const ReviewEditsSchema = z.strictObject({ edits: z.record(z.string().regex(/^form-[0-9a-f]{32}$/), ReviewEditSchema.nullable())
+  .refine(edits => Object.keys(edits).length >= 1 && Object.keys(edits).length <= MAX_REVIEW_EDITS) });
+export const ReviewEditsAckSchema = z.strictObject({ applicationId: uuid, fields: reviewedFields });
 const liveImage = z.string().max(120_000).regex(/^[A-Za-z0-9+/]*={0,2}$/);
 export const LiveFrameSchema = z.strictObject({ ...protocol, step: z.string().trim().min(1).max(200),
   image: liveImage.nullable().optional(), fields: liveFields.optional() });
@@ -135,7 +150,7 @@ export const VerificationCodeAckSchema = z.strictObject({ applicationId: uuid, s
 export const VerificationCodeTakeSchema = z.strictObject({ ...protocol });
 export const VerificationCodeResponseSchema = z.strictObject({ code: securityCode.nullable() });
 export const LiveListSchema = z.strictObject({ ownerId: z.string().min(1), live: z.array(z.strictObject({
-  applicationId: uuid, state: ApplicationStateSchema, step: z.string(), image: liveImage.nullable(), fields: liveFields.nullable(), updatedAt: timestamp,
+  applicationId: uuid, state: ApplicationStateSchema, step: z.string(), image: liveImage.nullable(), fields: reviewedFields.nullable(), updatedAt: timestamp,
 })).max(500) });
 export const MaterialsSchema = z.strictObject({ ownerId: z.string().min(1), materials: z.array(z.strictObject({
   applicationId: uuid,
@@ -143,7 +158,7 @@ export const MaterialsSchema = z.strictObject({ ownerId: z.string().min(1), mate
     changes: z.array(z.strictObject({ before: z.string(), after: z.string() })).max(64) }).nullable(),
   letter: z.strictObject(letterText).nullable(),
   // A submitted application's filled form, as the worker last typed it.
-  answers: liveFields.nullable(),
+  answers: reviewedFields.nullable(),
 })).max(500) });
 export type PairingCreate = z.infer<typeof PairingCreateSchema>;
 export type PairingGrant = z.infer<typeof PairingGrantSchema>;

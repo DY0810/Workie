@@ -12,7 +12,7 @@ import { archivedAt, bucket, inLive, isWatching, LIVE_STATES, openQuestions, row
 import { postingUrl } from '../../lib/applications/posting-url';
 import type { QuestionDetail } from '../../lib/applications/question-protocol';
 import { formatDailyStart, offlineNotice, scheduledWorker } from '../../lib/applications/schedule';
-import { HEARTBEAT_MS, LiveListSchema, MaterialsSchema, RunListSchema, WorkerListSchema, type ApplicationSummary, type Run } from '../../lib/applications/worker-protocol';
+import { HEARTBEAT_MS, LiveListSchema, MaterialsSchema, ReviewEditsAckSchema, RunListSchema, WorkerListSchema, type ApplicationSummary, type Run } from '../../lib/applications/worker-protocol';
 import { PolicySchema } from '../../lib/applications/policy';
 import { isAwaitingSubmitApproval, isSafeRetryState, isTerminalState } from '../../lib/applications/state';
 import { Modal } from '../modal';
@@ -73,6 +73,12 @@ function showTab(tab: Tab) {
   window.history.pushState(null, '', url);
 }
 
+type Field = NonNullable<Frame['fields']>[number];
+type Edit = NonNullable<Field['edit']>;
+const editText = (edit: Edit) => Array.isArray(edit) ? edit.join(', ') : typeof edit === 'boolean' ? (edit ? 'Yes' : 'No') : edit;
+/** What goes into the field at submit: the applicant's change, else what Workie filled. */
+const shown = (field: Field) => field.edit === undefined ? field.value : editText(field.edit);
+
 /** The tailored resume (and the lines it changed) and the cover letter for this application, and once submitted, the answers it sent. */
 function MaterialsPanel({ item }: { item: Material }) {
   const { resume, letter, answers } = item;
@@ -90,16 +96,64 @@ function MaterialsPanel({ item }: { item: Material }) {
     {letter && <details><summary className={styles.muted}>Cover letter</summary>
       <pre className={styles.preview}>{['Dear Hiring Manager,', letter.introduction, ...letter.body, letter.companyParagraph, letter.conclusion].join('\n\n')}</pre>
     </details>}
-    {answers && <dl className={styles.review}>{answers.map((field, index) => <div key={index}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>}
+    {answers && <dl className={styles.review}>{answers.map((field, index) => <div key={index}><dt>{field.label}</dt><dd>{shown(field)}</dd></div>)}</dl>}
   </>;
 }
 
-/** What the worker typed into each field, and the filled form as it looked, for review before Apply. */
-function FilledReview({ frame }: { frame: Frame | undefined }) {
+/** One answer being changed: a choice from the form's own options, Yes or No for a checkbox, otherwise text. */
+function ReviewEditor({ field, onSave, onCancel }: { field: Field; onSave: (edit: Edit | null) => Promise<void>; onCancel: () => void }) {
+  const start = field.edit ?? (field.value === 'Left blank' ? '' : field.kind === 'checkbox' ? field.value === 'Yes' : field.multiple ? field.value.split(', ') : field.value);
+  const [draft, setDraft] = useState<Edit | ''>(start);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const id = `edit-${field.key}`;
+  const save = async (edit: Edit | null) => {
+    setBusy(true); setError('');
+    try { await onSave(edit); } catch { setError('Could not save. Refresh and try again.'); setBusy(false); }
+  };
+  const empty = draft === '' || (Array.isArray(draft) && !draft.length) || (typeof draft === 'string' && !draft.trim());
+  const input = field.kind === 'checkbox'
+    ? <select id={id} value={draft ? 'Yes' : 'No'} onChange={(event) => setDraft(event.target.value === 'Yes')}><option>Yes</option><option>No</option></select>
+    : field.options && field.multiple
+      ? <fieldset id={id}>{field.options.map((option) => <label key={option}><input type="checkbox" checked={Array.isArray(draft) && draft.includes(option)}
+          onChange={(event) => setDraft(event.target.checked ? [...(Array.isArray(draft) ? draft : []), option] : (Array.isArray(draft) ? draft : []).filter((item) => item !== option))} /> {option}</label>)}</fieldset>
+      : field.options
+        ? <select id={id} value={typeof draft === 'string' ? draft : ''} onChange={(event) => setDraft(event.target.value)}>
+            {!field.options.includes(String(draft)) && <option value="">Choose one</option>}
+            {field.options.map((option) => <option key={option}>{option}</option>)}</select>
+        : <textarea id={id} rows={Math.min(8, Math.max(2, Math.ceil(String(draft).length / 60)))} maxLength={4000} value={String(draft)}
+            onChange={(event) => setDraft(event.target.value)} />;
+  return <form className={styles.reviewEdit} onSubmit={(event) => { event.preventDefault(); if (!empty) void save(typeof draft === 'string' ? draft.trim() : draft); }}>
+    <label className={styles.muted} htmlFor={id}>New answer</label>
+    {input}
+    {error && <span role="alert" className={styles.reason}>{error}</span>}
+    <div className={styles.actions}>
+      <button className={`${styles.button} ${styles.primary}`} type="submit" disabled={busy || empty}>{busy ? 'Saving...' : 'Save'}</button>
+      {field.edit !== undefined && <button className={styles.button} type="button" disabled={busy} onClick={() => void save(null)}>Use Workie&apos;s answer</button>}
+      <button className={styles.button} type="button" disabled={busy} onClick={onCancel}>Cancel</button>
+    </div>
+  </form>;
+}
+
+/** What the worker typed into each field, and the filled form as it looked, for review before Apply. Any answer but a file can be changed. */
+function FilledReview({ frame, ownerId, onSaved }: { frame: Frame | undefined; ownerId: string; onSaved: (fields: Field[]) => void }) {
+  const [editing, setEditing] = useState<string | null>(null);
   if (!frame?.fields?.length) return <p className={styles.muted}>This form was filled before Workie kept a copy of the answers. Open the job post to compare, or retry to fill it again.</p>;
+  const save = (key: string) => async (edit: Edit | null) => {
+    const ack = ReviewEditsAckSchema.parse(await privateJson(`/api/applications/${frame.applicationId}/answers`, {
+      method: 'POST', owner: ownerId, timeout: 30_000, body: JSON.stringify({ edits: { [key]: edit } }) }));
+    onSaved(ack.fields); setEditing(null);
+  };
   return <>
     <details open><summary className={styles.muted}>Filled answers ({frame.fields.length})</summary>
-      <dl className={styles.review}>{frame.fields.map((field, index) => <div key={index}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>
+      <dl className={styles.review}>{frame.fields.map((field, index) => <div key={field.key ?? index}><dt>{field.label}</dt><dd>
+        {editing === field.key && field.key ? <ReviewEditor field={field} onSave={save(field.key)} onCancel={() => setEditing(null)} /> : <>
+          {shown(field)}
+          {field.edit !== undefined && <span className={styles.muted}>{'\n'}Changed by you. Workie types this in when you press Apply.</span>}
+          {field.key && field.kind !== 'file' && <>{' '}<button className={styles.button} type="button" onClick={() => setEditing(field.key!)}
+            aria-label={`Change the answer to ${field.label}`}>Change</button></>}
+        </>}
+      </dd></div>)}</dl>
     </details>
     {frame.image && <details><summary className={styles.muted}>Filled form</summary>
       {/* eslint-disable-next-line @next/next/no-img-element -- a private data URL, not an optimizable asset */}
@@ -165,7 +219,7 @@ function LiveCard({ app, frame, role, asked, questions, ownerId, onAnswer, onDon
             <ApplicationQuestions applicationId={app.id} view={questions.view} control={questions.control} />
           </>}
           {frame?.fields?.length ? <details open={!asked.length}><summary className={styles.muted}>Filled answers ({frame.fields.length})</summary>
-            <dl className={styles.review}>{frame.fields.map((field, index) => <div key={index}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>
+            <dl className={styles.review}>{frame.fields.map((field, index) => <div key={index}><dt>{field.label}</dt><dd>{shown(field)}</dd></div>)}</dl>
           </details> : !asked.length && <p className={styles.muted}>The answers Workie fills show here.</p>}
           <div className={styles.actions}>{apply}</div>
         </div>}
@@ -621,8 +675,10 @@ export default function Applications() {
           idPrefix={`auto-apply-${open.id}`} initialKind={uploadKind[open.reasonCode ?? '']} />
       </>}
       {open && dialog!.kind === 'approve' && <>
-        <p className={styles.issue}>Form filled. Review what Workie entered, the resume and cover letter, then press Apply to submit.</p>
-        <FilledReview frame={frames.get(open.id)} />
+        <p className={styles.issue}>Form filled. Review what Workie entered, the resume and cover letter, then press Apply to submit.
+          Change any answer below first: Workie fills the form again with your changes when you press Apply, so the picture shows what it filled before.</p>
+        <FilledReview frame={frames.get(open.id)} ownerId={ownerId} onSaved={(fields) => setView((current) => ({ ...current,
+          live: current.live.map((frame) => frame.applicationId === open.id ? { ...frame, fields } : frame) }))} />
         {materials.get(open.id) && <MaterialsPanel item={materials.get(open.id)!} />}
       </>}
       {open && dialog!.kind === 'materials' && materials.get(open.id) && <MaterialsPanel item={materials.get(open.id)!} />}

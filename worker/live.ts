@@ -1,6 +1,9 @@
 import type { BrowserRuntime } from './browser.ts';
+import type { AtsField } from './ats/protocol.ts';
 
-type Frame = { step: string; image?: string | null; fields?: { label: string; value: string }[] };
+/** One filled field as the applicant reviews it; see the server's LiveFrameSchema. */
+export type ReviewField = { label: string; value: string; key?: string; kind?: AtsField['kind']; options?: string[]; multiple?: true };
+type Frame = { step: string; image?: string | null; fields?: ReviewField[] };
 
 /**
  * Sends Workie a screenshot of the application tab every few seconds while the worker fills it, so the
@@ -42,9 +45,12 @@ export function liveView(post: (frame: Frame) => Promise<unknown>, runtime: Brow
       // The filled form, taken after the last field; a separate request from the answers so each fits in 128 KB.
       const image = keepImage ? await shot().catch(() => undefined) : null;
       await post({ step: last, ...(image !== undefined ? { image } : {}) }).catch(() => {});
-      // ponytail: long essays are cut to 1500 characters when the whole list would not fit one request.
-      const fit = fields && JSON.stringify(fields).length > 110_000
-        ? fields.map(field => ({ ...field, value: field.value.length > 1500 ? `${field.value.slice(0, 1500)}…` : field.value })) : fields;
+      // ponytail: when the whole list would not fit one request, choices go first (those rows can then only be read),
+      // then long essays are cut to 1500 characters.
+      const big = (list?: ReviewField[]) => !!list && JSON.stringify(list).length > 110_000;
+      const bare = big(fields) ? fields!.map(field => field.options ? { label: field.label, value: field.value } : field) : fields;
+      const fit = big(bare)
+        ? bare!.map(field => ({ ...field, value: field.value.length > 1500 ? `${field.value.slice(0, 1500)}…` : field.value })) : bare;
       if (fit?.length) await post({ step: last, fields: fit }).catch(() => {});
     },
   };

@@ -16,7 +16,7 @@ import { beginSubmission, recordReceipt } from './submissions.ts';
 import { applicationContext, applicationDocumentOwner } from './application-context.ts';
 import { createArtifactIntent, uploadArtifact } from './artifacts.ts';
 import { listMaterials, recordSubmittedLetter } from './materials.ts';
-import { listLive, recordLiveFrame, setVerificationCode, takeVerificationCode } from './live.ts';
+import { listLive, recordLiveFrame, setReviewEdits, setVerificationCode, takeVerificationCode } from './live.ts';
 import { documentStorageConfig, readDocumentObject } from './documents-storage.ts';
 import { getPolicy, getProfile } from './stores.ts';
 import { ApplicationContextSchema, ApplicationContextRequestSchema } from './application-context-protocol.ts';
@@ -46,7 +46,7 @@ function checkPath(request: Request, ids: string[]) {
   }
 }
 type BrowserAction = 'list-workers' | 'create-pairing' | 'revoke-pairing' | 'revoke-worker' | 'schedule-worker' |
-  'list-runs' | 'create-run' | 'command-run' | 'command-application' | 'list-materials' | 'list-live' | 'verification-code';
+  'list-runs' | 'create-run' | 'command-run' | 'command-application' | 'list-materials' | 'list-live' | 'verification-code' | 'review-edits';
 
 const confirmed = <T>(fact: { state: string; value: T | null }) => fact.state === 'confirmed' ? fact.value : null;
 export function buildProviderConfig(
@@ -128,6 +128,7 @@ export async function browserWorkerEndpoint(request: Request, action: BrowserAct
       case 'list-materials': body = p.MaterialsSchema.parse(await listMaterials(db, ownerId)); break;
       case 'list-live': body = p.LiveListSchema.parse(await listLive(db, ownerId)); break;
       case 'verification-code': body = p.VerificationCodeAckSchema.parse(await setVerificationCode(db, ownerId, ids[0], await readPrivateJson(request, p.VerificationCodeSchema))); break;
+      case 'review-edits': body = p.ReviewEditsAckSchema.parse(await setReviewEdits(db, ownerId, ids[0], await readPrivateJson(request, p.ReviewEditsSchema))); break;
     }
     return privateJson(body, { headers });
   } catch (error) { return errorResponse(error, headers); }

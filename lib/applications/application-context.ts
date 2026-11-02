@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { driver, type ReadDb } from '../db/index.ts';
 import { postings, postingSources } from '../db/schema.ts';
 import type { PrivateDb } from '../private-db/index.ts';
-import { applications, applicationArtifacts, applicationRuns, discoveryManifests, discoveryTargets, documents, questions, questionAnswers } from '../private-db/schema.ts';
+import { applications, applicationArtifacts, applicationLive, applicationRuns, discoveryManifests, discoveryTargets, documents, questions, questionAnswers } from '../private-db/schema.ts';
 import { ApplicationContextSchema, ApplicationContextRequestSchema, disclosureAnswerKey, type ApplicationContext } from './application-context-protocol.ts';
 import { withWorker, type WorkerOptions, WorkerError, type WorkerTx, type WorkerRow } from './worker-store.ts';
 import { checkedLease } from './leases.ts';
@@ -250,6 +250,10 @@ async function ownedContext(tx: WorkerTx, worker: WorkerRow, lease: { applicatio
     }
     if (question.key.startsWith('form-')) answers[question.key] = value;
   }
+  // Answers the applicant changed while reviewing the filled form; the worker types them in when it fills the form to submit.
+  const [live] = await tx.select({ fields: applicationLive.fields }).from(applicationLive)
+    .where(and(eq(applicationLive.ownerId, worker.ownerId), eq(applicationLive.applicationId, checked.id)));
+  for (const field of live?.fields ?? []) if (field.key && field.edit !== undefined) answers[field.key] = field.edit;
   const masters = profile.documentsProvider.masters
     .map((master) => ({ master, role: factValue<string>(master.role), ref: factValue<{ documentId: string; version: number }>(master.document) }))
     .filter((item): item is { master: typeof item.master; role: string | null; ref: { documentId: string; version: number } } => item.ref !== null);
