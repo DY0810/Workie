@@ -27,8 +27,8 @@ function fixture(kind: 'sqlite' | 'libsql') {
   connection.pragma('journal_mode = WAL');
   const writer = sqlite(connection, { schema });
   migrate(writer, { migrationsFolder: MIGRATIONS_DIR });
-  const queries: string[] = [];
-  const logger = { logQuery(query: string) { queries.push(query); } };
+  const queries: string[] = [], params: unknown[][] = [];
+  const logger = { logQuery(query: string, values: unknown[]) { queries.push(query); params.push(values); } };
   const client = kind === 'libsql' ? createClient({ url: `file:${path}` }) : null;
   const db: ReadDb = client ? libsql(client, { schema, logger }) : sqlite(connection, { schema, logger });
   cleanups.push(() => { client?.close(); connection.close(); rmSync(dir, { recursive: true, force: true }); });
@@ -45,10 +45,20 @@ function fixture(kind: 'sqlite' | 'libsql') {
       sourcePriority: 1, lastSeenRun: 'fixture',
     }).run();
   }
-  return { db, writer, connection, queries, add };
+  return { db, writer, connection, queries, params, add };
 }
 const policy = (over: Partial<Policy> = {}): Policy => ({
   ...createEmptyPolicy(), destinations: ['job-boards.greenhouse.io'], undisclosedPay: 'include', ...over,
+});
+
+// Turso bills every index entry a query walks: the capture has to seek the 60-day window, not walk the whole track.
+it('captures candidates from the 60-day window of the board index, not every live posting in the track', async () => {
+  const f = fixture('sqlite');
+  f.add(1);
+  await captureCandidateSnapshot(f.db, policy(), NOW);
+  const at = f.queries.findIndex((query) => /from "postings"/.test(query) && /order by "postings"."id"/.test(query));
+  const plan = f.connection.prepare(`explain query plan ${f.queries[at]}`).all(...(f.params[at] as unknown[])) as { detail: string }[];
+  expect(plan.map((row) => row.detail).join('\n')).toMatch(/SEARCH postings USING (COVERING )?INDEX postings_board_idx \(track=\? AND delisted_at=\? AND <expr>>\?/);
 });
 
 describe.each(['sqlite', 'libsql'] as const)('%s consistent compact capture', (kind) => {

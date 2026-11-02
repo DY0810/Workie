@@ -99,6 +99,13 @@
       "when": 1792792288667,
       "tag": "0013_connector_runs_started_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1793588897934,
+      "tag": "0014_board_effective_date_index",
+      "breakpoints": true
     }
   ]
 }

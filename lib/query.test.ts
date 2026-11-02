@@ -974,4 +974,12 @@ describe('the board filters from the index, not the rows', () => {
     expect(details.length).toBeGreaterThan(0);
     for (const detail of details) expect(detail).toMatch(/USING COVERING INDEX postings_board_idx/);
   });
+
+  // Turso bills every index entry a query walks. A cutoff the index can't seek walked every live row in the track.
+  it.each(['engineering', 'design'] as const)('%s: the list and the count read only the rows inside the 60-day window', async (tab) => {
+    const details = await plans((logged) => Promise.all([listPostings(logged, params(tab), NOW), countPostings(logged, params(tab), NOW)]));
+    const searches = details.filter((detail) => /^(SEARCH|SCAN) postings\b/.test(detail));
+    expect(searches).toHaveLength(2);
+    for (const detail of searches) expect(detail).toMatch(/postings_board_idx \(track=\? AND delisted_at=\? AND <expr>[<>]\?/);
+  });
 });

@@ -89,7 +89,11 @@ export const postings = sqliteTable(
    * description plus 1,687 bytes of `source_fields` each — so reading 15,000 rows to return 900
    * meant touching ~126 MB, and a cold cache made that a 1.6-SECOND query on a local file.
    *
-   * Column order is the usable order: the equality columns first, then `posted_at`.
+   * Column order is the usable order: the equality columns first, then the board's date
+   * (`effectiveAt` in `lib/query.ts`, written out again here unqualified). The cutoff and the
+   * sort are on that expression, so with `posted_at` in this slot SQLite read every live row in
+   * the track (~100k on Engineering) per list and per count, which Turso bills as rows read.
+   * On the expression, the cutoff is a range: it reads only the rows inside the window.
    *
    * Every other column the board's WHERE reads rides along, so the filter never touches a row.
    * Each of them is stored after `description`, so reading one from the table walks that row's
@@ -100,7 +104,7 @@ export const postings = sqliteTable(
    */
   (table) => [
     index('postings_board_idx').on(
-      table.track, table.delistedAt, table.postedAt,
+      table.track, table.delistedAt, sql`max(posted_at, coalesce(unixepoch(first_seen_run) * 1000, 0))`, table.postedAt,
       table.firstSeenRun, table.seniority, table.companyNorm, table.country, table.cityNorm, table.state,
       table.workMode, table.isRemote, table.employmentType, table.internshipSeason, table.paid, table.badges,
       table.canonicalUrl,

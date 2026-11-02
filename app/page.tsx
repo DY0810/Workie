@@ -290,7 +290,7 @@ function PageStep({ p, to, pages, label }: { p: Params; to: number; pages: numbe
   );
 }
 
-const CRAWLER = /bot|crawl|spider|externalagent/i;
+const CRAWLER = /bot|crawl|spider|externalagent|externalhit|externalfetcher/i;
 
 export default async function Page({
   searchParams,
