@@ -27,7 +27,8 @@ export const PolicySchema = z.strictObject({
   sourceRestrictions: z.array(z.string().trim().min(1).max(200)).max(100),
   // email_recruiters and auto_send_recruiter_email are retired: nothing reads them, and they stay
   // in the enum only so stored policies that contain them still parse with the same hash.
-  actions: z.array(z.enum(['read_jobs', 'tailor_documents', 'fill_forms', 'submit', 'email_recruiters', 'auto_send_recruiter_email'])).max(6),
+  // submit_without_review sends a filled form with only short answers and no cover letter without the Apply click.
+  actions: z.array(z.enum(['read_jobs', 'tailor_documents', 'fill_forms', 'submit', 'email_recruiters', 'auto_send_recruiter_email', 'submit_without_review'])).max(7),
   destinations: z.array(z.string().regex(/^(?=.{1,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/)).max(100),
   countries: z.array(z.string().regex(/^[A-Z]{2}$/)).max(100),
   targetRoles: z.array(z.string().trim().min(1).max(300)).max(100),
@@ -67,6 +68,9 @@ export const PolicySchema = z.strictObject({
   }
   if (p.budget.perRequest > p.budget.perRun || p.budget.perRun > p.budget.perDay) {
     ctx.addIssue({ code: 'custom', path: ['budget'], message: 'Request budget must fit run and daily budgets.' });
+  }
+  if (p.actions.includes('submit_without_review') && !p.actions.includes('submit')) {
+    ctx.addIssue({ code: 'custom', path: ['actions'], message: 'Submitting without review needs Submit on.' });
   }
   if (p.actions.includes('auto_send_recruiter_email') && !p.actions.includes('email_recruiters')) {
     ctx.addIssue({ code: 'custom', path: ['actions'], message: 'Sending recruiter email automatically needs recruiter email on.' });

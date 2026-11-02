@@ -52,6 +52,8 @@ const ERROR_CODES = new Set([
   "REMOTE_PROVIDER_ENDPOINT_INVALID", "STAGE_TIMEOUT",
 ]);
 
+// Longer answers read as free text, which the applicant reviews before it goes out in their name.
+const SHORT_ANSWER_CHARS = 60;
 const PROVIDER_CAPABILITY_CACHE = "provider-capability";
 const PROVIDER_CAPABILITY_TTL_MS = 24 * 60 * 60_000;
 const CapabilityCacheSchema = z.strictObject({
@@ -257,7 +259,7 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
     let submissionStarted = false;
     let live: ReturnType<typeof liveView> | undefined;
     // What the applicant reviews before approving: each field Workie filled and its value.
-    let review: ReviewField[] | undefined;
+    let review: ReviewField[] | undefined, unreviewed = false;
     // Set when the form waits on the applicant's answers: like a form waiting on approval, it keeps its last picture.
     let asking = false;
     try {
@@ -363,6 +365,12 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
           return { label: field.label.slice(0, 1000), value: text ? text.slice(0, 4000) : 'Left blank', key: formQuestionKey(field), kind: field.kind,
             ...(field.options?.length ? { options: field.options } : {}), ...(field.key.endsWith('[]') ? { multiple: true as const } : {}) };
         }).slice(0, 64);
+        // A form of short answers and no letter goes out unreviewed when the policy allows it; anything longer waits for Apply.
+        const short = observed.fields.every(field => field.kind === 'file' || String(adapter.answer(currentApplication, field) ?? '').length <= SHORT_ANSWER_CHARS);
+        if (applicationContext.submitWithoutReview && !letter && short) {
+          unreviewed = true;
+          return { state: "ready" as const, reasonCode: "form_verified", evidence: { formVerified: true } };
+        }
         // Nothing is submitted until the applicant reviews the filled form, resume and letter and approves it.
         return { state: "needs_policy_decision" as const, reasonCode: SUBMIT_APPROVAL };
       }
@@ -415,7 +423,7 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
         reason: atsFailureReason(error), detail: error instanceof Error ? error.message.split("\n")[0].slice(0, 300) : null }) + "\n");
       return { state: "retryable_failure" as const, reasonCode: atsFailureReason(error) };
     } finally {
-      await live?.stop(review ? PARKED_STEPS.approval : asking ? PARKED_STEPS.answers : "Workie left this application",
+      await live?.stop(unreviewed ? "Filled. Submitting it next" : review ? PARKED_STEPS.approval : asking ? PARKED_STEPS.answers : "Workie left this application",
         review, !!review || asking);
       if (runtime) await runtime.close().catch(() => {});
       await rm(workDirectory, { recursive: true, force: true });
