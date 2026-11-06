@@ -165,13 +165,7 @@ Applied checkboxes appear at the end of each row and posting detail. Checkmarks 
 **Save defaults** preferences stay in this browser, not on the shared board. Saved defaults
 fill a bare landing URL; explicit filters and **Clear** override them without erasing them.
 
-## Writing to Talkie
-
-Anyone with the link can read, create, edit and delete notes.
-
-Notes autosave after a short typing pause; **Done** finishes editing. Unsaved text is kept
-locally across refreshes and navigation, including when authorization or the network fails.
-A client-generated key makes retrying a new note safe without creating a second copy.
+## Refreshing from the page
 
 On local development servers, `POST /api/refresh` starts a cycle on that machine, so it is off unless
 `WORKIE_ALLOW_LOCAL_REFRESH=1`. That request carries no body or custom header, which makes it
