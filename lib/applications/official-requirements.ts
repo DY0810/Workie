@@ -39,6 +39,9 @@ const DEGREE_RULES: readonly [string, RegExp][] = [
   ['bachelor', /\bbachelor(?:'s|s)?\b|\bundergraduate\b|\b4[- ]year\s+degree\b/i],
   ['master', /\bmaster(?:'s|s)?\b|\bgraduate\s+degree\b/i],
   ['doctorate', /\bdoctor(?:ate|al)\b|\bph\.?d\.?\b/i],
+  // Abbreviations: "B.S., M.S. or Ph.D." must not read as PhD-only. Undotted forms stay case-sensitive.
+  ['bachelor', /\b[Bb]\.\s?(?:[AaSs]|[Ss]c)\.|\bB(?:A|S|Sc)\b/],
+  ['master', /\b[Mm]\.\s?(?:[AaSs]|[Ss]c)\.|\bM(?:A|S|Sc)\b/],
 ];
 
 function parseTerms(text: string) {
