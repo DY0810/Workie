@@ -166,7 +166,8 @@ export const connectorRuns = sqliteTable(
 );
 
 /**
- * Talkie: shared post-it notes. Lives in whichever database the app is READING — the hosted
+ * Talkie: shared post-it notes. Its page and API were removed on 2026-11-05; the tables stay so
+ * existing notes are not destroyed. Lives in whichever database the app is READING — the hosted
  * replica is the shared board, written by the Vercel function itself. Deliberately absent
  * from `push:remote`'s table list, which mirrors the corpus up and deletes strays: a table the
  * hosted site writes must never be overwritten by the laptop's copy.
@@ -193,7 +194,7 @@ export const notes = sqliteTable(
 );
 
 /**
- * A thread under a note. Deleted with its note explicitly in `lib/notes.ts` rather than by
+ * A thread under a note. Was deleted with its note explicitly in the removed `lib/notes.ts` rather than by
  * ON DELETE CASCADE: SQLite only honours foreign keys when the connection turns the pragma on,
  * and neither driver here promises that.
  */

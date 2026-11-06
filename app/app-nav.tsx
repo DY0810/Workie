@@ -1,11 +1,10 @@
 import Link from 'next/link';
-import { Briefcase, Send, StickyNote, UserRound } from 'lucide-react';
+import { Briefcase, Send, UserRound } from 'lucide-react';
 
 const destinations = [
   ['Jobs', '/', Briefcase],
   ['Auto Apply', '/applications', Send],
   ['Profile', '/profile', UserRound],
-  ['Notes', '/talkie', StickyNote],
 ] as const;
 
 /** Postie's sidebar tabs: icon and name, the current one on the selected fill. */
