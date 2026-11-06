@@ -552,6 +552,13 @@
     "verified_at": "2026-08-18T04:01:22.777Z"
   },
   {
+    "name": "Charta Health",
+    "ats": "ashby",
+    "token": "chartahealth",
+    "verified_at": "2026-11-06T19:49:34.608Z",
+    "postings_at_probe": 22
+  },
+  {
     "name": "Checkr",
     "ats": "greenhouse",
     "token": "checkr",
@@ -1327,6 +1334,13 @@
     "token": "generalmatter",
     "verified_at": "2026-10-29T01:12:02.003Z",
     "postings_at_probe": 131
+  },
+  {
+    "name": "GenMD",
+    "ats": "ashby",
+    "token": "genmd",
+    "verified_at": "2026-11-06T19:49:34.608Z",
+    "postings_at_probe": 6
   },
   {
     "name": "GitLab",
@@ -2521,6 +2535,13 @@
     "postings_at_probe": 5
   },
   {
+    "name": "Pace",
+    "ats": "ashby",
+    "token": "withpace",
+    "verified_at": "2026-11-06T19:49:34.608Z",
+    "postings_at_probe": 38
+  },
+  {
     "name": "Pacific Fusion",
     "ats": "greenhouse",
     "token": "pacificfusion",
@@ -2927,6 +2948,13 @@
     "postings_at_probe": 15
   },
   {
+    "name": "Revel",
+    "ats": "ashby",
+    "token": "revel",
+    "verified_at": "2026-11-06T19:49:34.608Z",
+    "postings_at_probe": 32
+  },
+  {
     "name": "Rime",
     "ats": "ashby",
     "token": "rime",
@@ -3168,6 +3196,13 @@
       "voice-ai"
     ],
     "verified_at": "2026-08-18T04:01:38.361Z"
+  },
+  {
+    "name": "Shield AI",
+    "ats": "ashby",
+    "token": "shield",
+    "verified_at": "2026-11-06T19:49:34.608Z",
+    "postings_at_probe": 695
   },
   {
     "name": "Sierra",
