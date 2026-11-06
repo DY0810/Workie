@@ -29,6 +29,17 @@ describe('parseOfficialRequirements', () => {
     });
   });
 
+  it('reads abbreviated degrees as degree levels, not only the Ph.D.', () => {
+    const description = `WHAT WE'RE LOOKING FOR\n - Currently pursuing a B.S., M.S. or Ph.D. in CS, AI/ML, data science or a related field.`;
+    expect(parseOfficialRequirements({ ...base, description }).degreeLevels.sort()).toEqual(['bachelor', 'doctorate', 'master']);
+  });
+
+  it('does not read the verb "master" as a master\'s degree', () => {
+    const description = `You love to master new technologies and concepts.\nCompleted at least your 2nd year of a Computer Science, Engineering, or related technical degree.`;
+    expect(parseOfficialRequirements({ ...base, description }).degreeLevels).toEqual([]);
+    expect(parseOfficialRequirements({ ...base, description: 'Pursuing a Master of Science or masters degree.' }).degreeLevels).toEqual(['master']);
+  });
+
   it('does not turn flattened job duties into required majors', () => {
     const description = `WHAT YOU'LL DO Build systems from design through launch Solve problems in payments, risk, finance, data, and AI Work with product and business teams WHAT YOU'LL NEED Currently pursuing a B.S. or higher in Computer Science or a related technical field, graduating December 2027 or later Strong programming fundamentals Track record of shipping products Ability to turn business problems into engineering solutions.`;
     expect(parseOfficialRequirements({ ...base, description })).toMatchObject({
