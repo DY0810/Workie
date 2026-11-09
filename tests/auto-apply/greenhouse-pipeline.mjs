@@ -271,7 +271,7 @@ test('Greenhouse pipeline tailors the resume, asks only the new question, writes
       assert.deepEqual(kept, [], 'a receipt the server took is not kept');
       assert.ok(printed.some(line => line.includes('"verification-code-required"') && !Number.isNaN(Date.parse(JSON.parse(line).at))),
         'the worker says, with the time, that a code is needed');
-      assert.deepEqual(visible, { filling: true, ready: true }, 'every stage that opens a form shows it to the applicant');
+      assert.deepEqual(visible, { filling: false, ready: true }, 'filling runs hidden; only the submit shows a window');
       assert.deepEqual(advanced, [{ revision: 2, fence: 1, state: 'submitting' }], 'heartbeats move to the revision the intent created');
 
       assert.equal(calls.receipt.intentId, applicationId);

@@ -285,12 +285,13 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
         submissionIntentId: lease.applicationId,
       };
       const hostname = new URL(application.applicationUrl).hostname;
+      // Filling runs hidden. Only the submit after Apply opens a visible window, where the applicant types an
+      // emailed code or solves a captcha. Each gets its own profile: Chrome locks a profile to one instance.
+      const visible = lease.state === "ready";
       runtime = await browser({
-        userDataDir: join(directory, "browser", "applications"),
+        userDataDir: join(directory, "browser", visible ? "applications" : "filling"),
         approvedOrigins: [new URL(application.applicationUrl).origin, ...(adapter.hosts.includes(hostname) ? adapter.origins : [])],
-        // Every application opens in a new tab of one visible window, so the applicant can watch it fill
-        // and type an emailed code or solve a captcha the form asks for at submit.
-        allowLoopback: /^127\./.test(hostname), headless: false,
+        allowLoopback: /^127\./.test(hostname), headless: !visible,
       });
       live = liveView(async frame => control.live(lease.applicationId, { protocolVersion: 1, ...frame }, signal), runtime);
       live.step(lease.state === "filling" ? "Reading the form" : "Opening the approved application");
