@@ -59,6 +59,13 @@
     "postings_at_probe": 201
   },
   {
+    "name": "AfterQuery",
+    "ats": "ashby",
+    "token": "AfterQuery",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 40
+  },
+  {
     "name": "Air Apps",
     "ats": "ashby",
     "token": "airapps",
@@ -310,6 +317,13 @@
     "postings_at_probe": 186
   },
   {
+    "name": "Astro Mechanica",
+    "ats": "ashby",
+    "token": "astro-mechanica",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 46
+  },
+  {
     "name": "At-Bay",
     "ats": "greenhouse",
     "token": "atbay",
@@ -383,6 +397,13 @@
     ],
     "verified_at": "2026-10-13T06:17:30.406Z",
     "postings_at_probe": 9
+  },
+  {
+    "name": "Bedrock Robotics",
+    "ats": "ashby",
+    "token": "bedrock-robotics",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 59
   },
   {
     "name": "Betterment",
@@ -1199,6 +1220,13 @@
     "verified_at": "2026-08-18T04:01:26.291Z"
   },
   {
+    "name": "Flagship Pioneering",
+    "ats": "greenhouse",
+    "token": "flagshippioneeringinc",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 93
+  },
+  {
     "name": "Fleetworks",
     "ats": "ashby",
     "token": "fleetworks",
@@ -1594,6 +1622,13 @@
       "voice-ai"
     ],
     "verified_at": "2026-08-18T04:01:21.813Z"
+  },
+  {
+    "name": "Hyphenate",
+    "ats": "ashby",
+    "token": "hyphenate",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 15
   },
   {
     "name": "Ibotta",
@@ -2019,6 +2054,13 @@
     ],
     "verified_at": "2026-10-13T06:17:29.788Z",
     "postings_at_probe": 4
+  },
+  {
+    "name": "Match Group",
+    "ats": "lever",
+    "token": "matchgroup",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 71
   },
   {
     "name": "Matera",
@@ -2467,6 +2509,13 @@
     "verified_at": "2026-08-18T04:01:33.378Z"
   },
   {
+    "name": "onepot",
+    "ats": "ashby",
+    "token": "onepot",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 7
+  },
+  {
     "name": "OpenAI",
     "ats": "ashby",
     "token": "openai",
@@ -2603,6 +2652,13 @@
       "voice-ai"
     ],
     "verified_at": "2026-08-18T04:01:26.322Z"
+  },
+  {
+    "name": "Parspec",
+    "ats": "ashby",
+    "token": "parspec",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 3
   },
   {
     "name": "Patreon",
@@ -3464,6 +3520,13 @@
     "postings_at_probe": 16
   },
   {
+    "name": "Sycamore",
+    "ats": "ashby",
+    "token": "sycamore",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 15
+  },
+  {
     "name": "Syllo",
     "ats": "greenhouse",
     "token": "syllo",
@@ -3559,6 +3622,13 @@
     ],
     "verified_at": "2026-08-21T00:00:40.805Z",
     "postings_at_probe": 15
+  },
+  {
+    "name": "The New York Times",
+    "ats": "greenhouse",
+    "token": "thenewyorktimes",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 170
   },
   {
     "name": "ThriveCart",
@@ -3725,6 +3795,13 @@
     ],
     "verified_at": "2026-08-24T18:47:55.166Z",
     "postings_at_probe": 0
+  },
+  {
+    "name": "Valon",
+    "ats": "ashby",
+    "token": "valon",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 31
   },
   {
     "name": "Vanta",
@@ -4045,6 +4122,13 @@
     ],
     "verified_at": "2026-09-26T20:55:49Z",
     "postings_at_probe": 122
+  },
+  {
+    "name": "Zoox",
+    "ats": "lever",
+    "token": "zoox",
+    "verified_at": "2026-11-08T10:08:41.408Z",
+    "postings_at_probe": 241
   },
   {
     "name": "Zwift",
