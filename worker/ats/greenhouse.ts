@@ -123,7 +123,9 @@ async function menuOptions(page: import('playwright').Page, field: AtsField) {
   }
   const options = [...new Set((await page.getByRole('option').allTextContents()).map(item => item.trim()).filter(Boolean))];
   await page.keyboard.press('Escape');
-  return options.length && options.length <= 100 && options.every(option => option.length <= 300) ? options : undefined;
+  // Greenhouse's school list loads 100 at a time, so a full page is not the whole list (USC was missing, 2026-11-08):
+  // leave it unread and let the profile answer be checked against the live list on fill, as for a longer list.
+  return options.length && options.length < 100 && options.every(option => option.length <= 300) ? options : undefined;
 }
 
 export const greenhouse: AtsAdapter = {
