@@ -33,7 +33,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { createClient, type Client } from '@libsql/client';
-import { getTableColumns, getTableName, inArray, sql } from 'drizzle-orm';
+import { getTableColumns, getTableName, gt, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 
@@ -50,6 +50,8 @@ export type Mirrored = (typeof TABLES)[number];
  * and the request body well inside SQLite's and Turso's limits.
  */
 const BATCH = 100;
+/** Local rows read per page while mirroring. */
+const PAGE = 5000;
 
 /** `set` for an upsert that overwrites every non-key column with the row being inserted. */
 function overwrite(table: Mirrored): Record<string, unknown> {
@@ -151,9 +153,6 @@ export async function mirrorTable(
   local.run(sql.raw(MIRROR_STATE_DDL));
   const name = getTableName(table);
 
-  // `select()` decodes (Date, boolean, parsed JSON) and `insert()` re-encodes, so the round
-  // trip goes through the schema rather than around it.
-  const rows = local.select().from(table).all() as { id: number }[];
   const seen = new Map(
     (local.all(sql`select row_id, hash from mirror_state where target = ${target} and table_name = ${name}`) as {
       row_id: number;
@@ -161,37 +160,52 @@ export async function mirrorTable(
     }[]).map((r) => [r.row_id, r.hash]),
   );
 
-  const changed: { row: { id: number }; hash: string }[] = [];
-  for (const row of rows) {
-    const hash = rowHash(row as Record<string, unknown>, table);
-    if (seen.get(row.id) !== hash) changed.push({ row, hash });
-  }
+  // One page of rows in memory at a time: loading all of `postings` (a full description per
+  // row) at once passed Node's 4 GB heap on 2026-11-10 and no cycle could mirror.
+  const live = new Set<number>();
+  let pushed = 0;
+  for (let after = 0; ; ) {
+    // `select()` decodes (Date, boolean, parsed JSON) and `insert()` re-encodes, so the round
+    // trip goes through the schema rather than around it.
+    const rows = local.select().from(table).where(gt(table.id, after)).orderBy(table.id).limit(PAGE).all() as {
+      id: number;
+    }[];
+    if (rows.length === 0) break;
+    after = rows[rows.length - 1].id;
 
-  for (let start = 0; start < changed.length; start += BATCH) {
-    const slice = changed.slice(start, start + BATCH);
-    await remote
-      .insert(table)
-      // The three row shapes differ; the loop is the same. One cast here beats three copies.
-      .values(slice.map((c) => c.row) as never)
-      .onConflictDoUpdate({ target: table.id, set: overwrite(table) });
-    // Recorded only AFTER the remote accepted the batch, so a failure mid-mirror leaves those
-    // rows looking unpushed and the next run retries them rather than skipping them forever.
-    for (const c of slice) {
-      local.run(
-        sql`insert into mirror_state (target, table_name, row_id, hash)
-            values (${target}, ${name}, ${c.row.id}, ${c.hash})
-            on conflict (target, table_name, row_id) do update set hash = excluded.hash`,
-      );
+    const changed: { row: { id: number }; hash: string }[] = [];
+    for (const row of rows) {
+      live.add(row.id);
+      const hash = rowHash(row as Record<string, unknown>, table);
+      if (seen.get(row.id) !== hash) changed.push({ row, hash });
+    }
+    pushed += changed.length;
+
+    for (let start = 0; start < changed.length; start += BATCH) {
+      const slice = changed.slice(start, start + BATCH);
+      await remote
+        .insert(table)
+        // The three row shapes differ; the loop is the same. One cast here beats three copies.
+        .values(slice.map((c) => c.row) as never)
+        .onConflictDoUpdate({ target: table.id, set: overwrite(table) });
+      // Recorded only AFTER the remote accepted the batch, so a failure mid-mirror leaves those
+      // rows looking unpushed and the next run retries them rather than skipping them forever.
+      for (const c of slice) {
+        local.run(
+          sql`insert into mirror_state (target, table_name, row_id, hash)
+              values (${target}, ${name}, ${c.row.id}, ${c.hash})
+              on conflict (target, table_name, row_id) do update set hash = excluded.hash`,
+        );
+      }
     }
   }
 
   // Forget rows that no longer exist locally; `deleteStrays` has already removed them remotely.
-  const live = new Set(rows.map((r) => r.id));
   for (const id of seen.keys()) {
     if (!live.has(id))
       local.run(sql`delete from mirror_state where target = ${target} and table_name = ${name} and row_id = ${id}`);
   }
-  return changed.length;
+  return pushed;
 }
 
 /**
