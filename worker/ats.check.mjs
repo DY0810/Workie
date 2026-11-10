@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { chromium } from 'playwright';
-import { BrowserEgressError, createBrowserRuntime, openApplicationTab } from './browser.ts';
+import { BrowserEgressError, createBrowserRuntime, openApplicationTab, originApproved } from './browser.ts';
 import { greenhouse, greenhouseAnswer, hostedFields, hostedTitle } from './ats/greenhouse.ts';
 import { hcaptchaChallengeShown, lever, matchOption } from './ats/lever.ts';
 import { fieldKeyFor, fillField, formQuestionKey as leverQuestionKey, locateField, undergraduateTranscript, verifyField } from './ats/protocol.ts';
@@ -907,6 +907,14 @@ test('a Lever form is observed, answered from the profile, filled, submitted and
     await browser.close();
     await rm(directory, { recursive: true, force: true });
   }
+});
+test('a wildcard origin approves one label under it and nothing else', () => {
+  const origins = new Set(['https://api.hcaptcha.com', 'https://*.w.hcaptcha.com']);
+  const ok = value => originApproved(new URL(value), origins);
+  assert.equal(ok('https://83f5399976c6.w.hcaptcha.com/x'), true);
+  assert.equal(ok('https://api.hcaptcha.com/x'), true);
+  for (const value of ['https://w.hcaptcha.com/', 'https://a.b.w.hcaptcha.com/', 'http://a.w.hcaptcha.com/', 'https://a.w.hcaptcha.com:8443/',
+    'https://a.w.hcaptcha.com.evil.test/', 'https://evil.hcaptcha.com/']) assert.equal(ok(value), false, value);
 });
 test('an hCaptcha challenge nested in its enclave frame counts only while it is shown', { skip: !browserReady }, async () => {
   const browser = await chromium.launch({ headless: true });
