@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import { chromium } from 'playwright';
 import { BrowserEgressError, createBrowserRuntime, openApplicationTab } from './browser.ts';
 import { greenhouse, greenhouseAnswer, hostedFields, hostedTitle } from './ats/greenhouse.ts';
-import { lever, matchOption } from './ats/lever.ts';
+import { hcaptchaChallengeShown, lever, matchOption } from './ats/lever.ts';
 import { fieldKeyFor, fillField, formQuestionKey as leverQuestionKey, locateField, undergraduateTranscript, verifyField } from './ats/protocol.ts';
 import { fillAtsApplication, runAtsApplication } from './application-runner.ts';
 import { AtsIdentitySchema, AtsObservationSchema } from './ats/protocol.ts';
@@ -907,6 +907,22 @@ test('a Lever form is observed, answered from the profile, filled, submitted and
     await browser.close();
     await rm(directory, { recursive: true, force: true });
   }
+});
+test('an hCaptcha challenge nested in its enclave frame counts only while it is shown', { skip: !browserReady }, async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext();
+    const html = body => ({ contentType: 'text/html; charset=utf-8', body });
+    await context.route('https://newassets.hcaptcha.com/**', route => route.fulfill(html(route.request().url().includes('enclave.html')
+      ? '<div><div id="box" style="visibility:hidden"><iframe src="https://newassets.hcaptcha.com/hcaptcha.html#frame=challenge&id=1"></iframe></div></div>' : 'puzzle')));
+    await context.route(`${leverJob}/apply`, route => route.fulfill(html('<iframe src="https://newassets.hcaptcha.com/enclave.html#frame=enclave"></iframe>')));
+    const page = await context.newPage();
+    await page.goto(`${leverJob}/apply`);
+    await page.frames().find(frame => frame.url().includes('frame=enclave')).waitForSelector('iframe', { state: 'attached' });
+    assert.equal(await hcaptchaChallengeShown(page), false);
+    await page.frames().find(frame => frame.url().includes('frame=enclave')).evaluate(() => { document.getElementById('box').style.visibility = 'visible'; });
+    assert.equal(await hcaptchaChallengeShown(page), true);
+  } finally { await browser.close(); }
 });
 test('a Lever location not among the suggestions asks the applicant to pick one of them', { skip: !browserReady }, async () => {
   const browser = await chromium.launch({ headless: true });

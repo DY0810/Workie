@@ -160,6 +160,16 @@ async function verifyLever(page: Page, field: AtsField, value: AtsValue | undefi
   return actual === value;
 }
 
+// hCaptcha nests its challenge frame inside an "enclave" frame (seen 2026-11-10), where a page-level selector cannot reach it.
+export async function hcaptchaChallengeShown(page: Page) {
+  for (const frame of page.frames()) {
+    if (!/hcaptcha\.com\/.*frame=challenge/.test(frame.url())) continue;
+    const element = await frame.frameElement().catch(() => null);
+    if (element && await element.isVisible().catch(() => false)) return true;
+  }
+  return false;
+}
+
 export const lever: AtsAdapter = {
   id: 'lever',
   hosts: ['jobs.lever.co', 'jobs.eu.lever.co'],
@@ -201,10 +211,10 @@ export const lever: AtsAdapter = {
     if (!await button.count()) throw new AtsError('SUBMIT_CONTROL_NOT_FOUND');
     await button.click();
     const thanks = (url: URL) => at(url.href, input, '/thanks');
-    // hCaptcha shows its challenge in an iframe only when it doubts the browser; otherwise the form posts and redirects to /thanks.
-    const challenge = page.locator('iframe[src*="hcaptcha.com"][src*="frame=challenge"]').first();
-    await Promise.race([page.waitForURL(thanks, { timeout: 60_000 }), challenge.waitFor({ state: 'visible', timeout: 60_000 })]).catch(() => {});
-    if (!at(page.url(), input, '/thanks') && await challenge.isVisible()) {
+    // hCaptcha shows its challenge only when it doubts the browser; otherwise the form posts and redirects to /thanks.
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline && !at(page.url(), input, '/thanks') && !await hcaptchaChallengeShown(page)) await page.waitForTimeout(500);
+    if (!at(page.url(), input, '/thanks') && await hcaptchaChallengeShown(page)) {
       process.stdout.write(JSON.stringify({ at: new Date().toISOString(), status: 'captcha-required', company: input.company, role: input.role }) + '\n');
       await page.waitForURL(thanks, { timeout: CAPTCHA_WAIT_MS }).catch(() => {});
     }
