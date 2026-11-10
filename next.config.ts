@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
   // qualified with Turbopack (vercel/next.js#82881); keep both file and HTTP clients.
   // better-sqlite3 is a native addon: it must be required at runtime, not bundled.
   serverExternalPackages: ['better-sqlite3'],
+  // Next streams a dynamic page's title, canonical and OG tags into <body> unless the user agent
+  // is on its bot list. The CDN serves one cached copy of / to everyone, so a crawler could get
+  // the browser's copy, where a canonical outside <head> is ignored. All metadata here is static,
+  // so putting it in <head> for every agent delays nothing.
+  htmlLimitedBots: /.*/,
   // The parser is a static Node worker, outside webpack's module graph.
   outputFileTracingIncludes: {
     // libsql selects its installed native package with a computed require().

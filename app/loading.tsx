@@ -6,7 +6,9 @@ export default function Loading() {
       <AppHeader current="/" />
       <section className="board-intro" aria-label="Loading job board">
         <div>
-          <h1 className="board-title">Loading jobs…</h1>
+          {/* Not a heading: this fallback is first in the streamed HTML, and a crawler that runs
+              no script would take it for the page's h1. */}
+          <p className="board-title">Loading jobs…</p>
           <span className="skeleton-line mt-2 w-44" aria-hidden="true" />
         </div>
       </section>
