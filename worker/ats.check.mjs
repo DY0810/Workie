@@ -385,6 +385,10 @@ test('a numbered demographic survey question takes a voluntary fact only when it
   // An inbox answer wins, keyed as every form question is.
   const field = { key: '1654', label: 'Gender Identity', kind: 'combobox', required: true, options: ['Woman', 'Man'] };
   assert.equal(greenhouseAnswer({ ...input, answers: { ...answers, [leverQuestionKey(field)]: 'Man' } }, field), 'Man');
+  // The phone-country picker: the profile's country, even over an answer typed for it that the picker cannot match.
+  const country = { key: 'country', label: 'Country', kind: 'combobox', required: true };
+  assert.equal(greenhouseAnswer({ ...input, answers: { phone_country: 'US', [leverQuestionKey(country)]: 'United States' } }, country), 'United States +1');
+  assert.equal(greenhouseAnswer({ ...input, answers: { [leverQuestionKey(country)]: 'Canada +1' } }, country), 'Canada +1');
   // Survey numbers and checkbox groups are valid keys; a single box's id is not. A bare-number Ashby or Lever id is still hashed.
   for (const key of ['75902', 'question_69008302[]']) AtsObservationSchema.parse({ identity: input.identity, company: 'MongoDB', role: 'Intern', fields: [{ key, label: 'Q', kind: 'radio', required: true }], actions: ['fill'] });
   assert.throws(() => AtsObservationSchema.parse({ identity: input.identity, company: 'MongoDB', role: 'Intern', fields: [{ key: 'question_1[]_2', label: 'Q', kind: 'radio', required: true }], actions: ['fill'] }));

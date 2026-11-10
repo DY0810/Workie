@@ -17,7 +17,7 @@ function checkPath(request: Request, id?: string, pagination = false) {
   const query = new URL(request.url).searchParams;
   if ((id !== undefined && !z.uuid().safeParse(id).success) ||
       [...query.keys()].some(key => !pagination || !['limit', 'cursor', 'applicationId'].includes(key) || query.getAll(key).length !== 1) ||
-      (query.has('limit') && !/^(?:[1-9]|[1-4][0-9]|50)$/.test(query.get('limit')!))) {
+      (query.has('limit') && !/^(?:[1-9]\d?|1\d\d|2[0-4]\d|250)$/.test(query.get('limit')!))) {
     throw new PrivateInputError(400, 'Invalid request path.');
   }
   return query;

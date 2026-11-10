@@ -112,7 +112,8 @@ export async function browserWorkerEndpoint(request: Request, action: BrowserAct
     headers = result.response.headers;
     const ownerId = result.applicant.ownerId;
     assertExpectedApplicant(request, ownerId);
-    await limit(`private-worker-browser:${ownerId}`, 60);
+    // The Live tab alone polls 20 a minute; at 60 a few refreshes locked the page out of its own next load.
+    await limit(`private-worker-browser:${ownerId}`, 120);
     const db = getPrivateDb(), options: WorkerOptions = {};
     let body: unknown;
     switch (action) {
