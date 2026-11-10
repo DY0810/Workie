@@ -1,0 +1,14 @@
+# Workie
+
+> Workie is a job board of design and engineering jobs and internships, entry to mid level, collected from company career boards and public job feeds. It is refreshed about every 30 minutes and lists the newest postings first.
+
+## What the board shows
+
+- Two tracks: Design and Engineering. Design is split into employed and freelance roles and shows a set of target locations only; Engineering shows every location.
+- Each row gives when the posting was first seen, its title, the pay rate when the employer states one, the location, the company, and a link to the employer's own application page.
+- Workie does not host postings or take applications. Every "Apply" link leaves for the employer or the feed the posting came from.
+
+## Fetching
+
+- The board is the home page, `/`. It is the only page meant for crawlers.
+- Filters, pages and single-job views are query strings on `/` and are disallowed in `/robots.txt`.

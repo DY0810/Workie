@@ -1,4 +1,6 @@
 import { desc } from "drizzle-orm";
+import type { Metadata } from "next";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/site";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -290,7 +292,15 @@ function PageStep({ p, to, pages, label }: { p: Params; to: number; pages: numbe
   );
 }
 
-const CRAWLER = /bot|crawl|spider|externalagent|externalhit|externalfetcher/i;
+// Static, so it lands in the head before the board streams. The canonical lives here rather
+// than in the layout: every filtered view folds into the bare board, the private pages do not.
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+  openGraph: { type: 'website', siteName: 'Workie', url: '/', title: SITE_TITLE, description: SITE_DESCRIPTION },
+  twitter: { card: 'summary', title: SITE_TITLE, description: SITE_DESCRIPTION },
+};
+
+const CRAWLER =/bot|crawl|spider|externalagent|externalhit|externalfetcher/i;
 
 export default async function Page({
   searchParams,
