@@ -52,10 +52,16 @@ function canonicalOrigins(origins: readonly string[]) {
   return new Set(values);
 }
 
+/** An approved origin, or one label under an approved "https://*.parent" entry (hCaptcha's per-load probe hosts). */
+export function originApproved(url: URL, origins: ReadonlySet<string>) {
+  return origins.has(url.origin) || (url.protocol === 'https:' && !url.port &&
+    origins.has(`https://*.${url.hostname.split('.').slice(1).join('.')}`));
+}
+
 async function assertUrl(value: string, origins: ReadonlySet<string>, allowLoopback: boolean) {
   let url: URL;
   try { url = new URL(value); } catch { throw new BrowserEgressError('Invalid browser URL.'); }
-  if (!origins.has(url.origin) || !['http:', 'https:'].includes(url.protocol) ||
+  if (!originApproved(url, origins) || !['http:', 'https:'].includes(url.protocol) ||
     url.username || url.password || url.hash || !(await publicHost(url.hostname, allowLoopback))) {
     throw new BrowserEgressError('Browser egress is outside the approved public origin.');
   }

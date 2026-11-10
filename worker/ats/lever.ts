@@ -174,9 +174,10 @@ export const lever: AtsAdapter = {
   id: 'lever',
   hosts: ['jobs.lever.co', 'jobs.eu.lever.co'],
   // Location search and resume parsing are served by jobs.lever.co itself. hCaptcha runs on submit, as in any browser;
-  // blocking it leaves a submit unconfirmed. The *.w.hcaptcha.com probes use random subdomains and are not needed.
+  // blocking it leaves a submit unconfirmed. With its *.w.hcaptcha.com probes blocked, Lever refused even a solved
+  // challenge ("There was an error verifying your application", Pivotal 2026-11-10), so they load as in any browser.
   origins: ['https://cdn.lever.co', 'https://js.hcaptcha.com', 'https://newassets.hcaptcha.com', 'https://api.hcaptcha.com',
-    'https://imgs.hcaptcha.com', 'https://imgs3.hcaptcha.com'],
+    'https://imgs.hcaptcha.com', 'https://imgs3.hcaptcha.com', 'https://*.w.hcaptcha.com'],
   answer: leverAnswer,
   async observe(runtime, input, signal) {
     signal?.throwIfAborted();
