@@ -174,18 +174,12 @@ export class InboxControl {
   }
   private async load(owner: string, signal: AbortSignal, cursor?: string) {
     const page = async (after?: string, applicationId?: string) => {
-      const next = InboxPageSchema.parse(await this.request(`/api/inbox?limit=50${after ? `&cursor=${encodeURIComponent(after)}` : ''}${
+      const next = InboxPageSchema.parse(await this.request(`/api/inbox?limit=${after || applicationId ? 50 : 250}${after ? `&cursor=${encodeURIComponent(after)}` : ''}${
         applicationId ? `&applicationId=${applicationId}` : ''}`, signal, owner));
       if (next.ownerId !== owner) throw new RequestError(403, 'PRINCIPAL_CHANGED');
       return next;
     };
     const inbox = await page(cursor);
-    // An application's form needs all of its open questions, not only those in the newest 50 notifications.
-    for (let more = 0; !cursor && inbox.nextCursor && more < 4; more++) {
-      const next = await page(inbox.nextCursor);
-      inbox.items.push(...next.items);
-      inbox.nextCursor = next.nextCursor;
-    }
     // Past 250 notifications, a waiting application with none of its questions loaded reads its own, so Answer still works.
     // ponytail: one that has only some of its questions in the newest 250 still shows only those.
     if (!cursor && inbox.nextCursor) {

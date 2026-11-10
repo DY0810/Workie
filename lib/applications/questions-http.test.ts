@@ -200,8 +200,8 @@ it('real session routes isolate owners, validate pagination and separate read/an
   const page = p.InboxPageSchema.parse(await response.json());
   expect(page).toMatchObject({ ownerId: alice.id, unread: 1, unresolved: 1 });
   expect((await http(`/api/questions/${q.id}`, undefined, bob)).status).toBe(404);
-  expect(p.InboxPageSchema.parse(await (await http('/api/inbox', undefined, bob)).json()).items).toEqual([]);
-  for (const suffix of ['?ownerId=alice', '?limit=1&limit=2', '?limit=1e1', '?limit=01', '?limit=', '?limit=51', '?cursor=not-a-uuid']) {
+  expect(p.InboxPageSchema.parse(await (await http('/api/inbox?limit=250', undefined, bob)).json()).items).toEqual([]);
+  for (const suffix of ['?ownerId=alice', '?limit=1&limit=2', '?limit=1e1', '?limit=01', '?limit=', '?limit=251', '?cursor=not-a-uuid']) {
     expect((await http(`/api/inbox${suffix}`, undefined, alice)).status).toBe(400);
   }
   expect((await http('/api/inbox/status?limit=1', undefined, alice)).status).toBe(400);

@@ -27,6 +27,9 @@ function hosted(input: AtsApplication, href = input.applicationUrl, suffix = '')
 }
 
 export function greenhouseAnswer(input: AtsApplication, field: AtsField) {
+  // Every hosted form puts the same phone-country picker beside Phone. Before a typed answer: the picker takes only its
+  // exact "United States +1", so "United States" typed in the inbox was asked again on every fill (Schonfeld, 2026-11-10).
+  if (field.key === 'country' && field.label === 'Country' && input.answers.phone_country === 'US') return 'United States +1';
   if (input.answers[formQuestionKey(field)] !== undefined) return input.answers[formQuestionKey(field)];
   // Greenhouse's education dropdown names the degree; the profile stores a level (doctorates are ambiguous, so asked).
   if (field.key === 'degree--0' && field.label === 'Degree') {
@@ -51,8 +54,6 @@ export function greenhouseAnswer(input: AtsApplication, field: AtsField) {
     return typeof value === 'string' && field.options?.includes(value) ? value : undefined;
   }
   if (field.key === 'candidate-location' && field.label === 'Location (City)') return input.answers.current_location;
-  // Every hosted form puts the same phone-country picker beside Phone.
-  if (field.key === 'country' && field.label === 'Country' && input.answers.phone_country === 'US') return 'United States +1';
   const month = (value: string) => new Date(`${value}-01T00:00:00Z`).toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });
   if (field.key === 'end-month--0' && field.label === 'End date month' && typeof input.answers.expected_graduation_month === 'string') {
     return month(input.answers.expected_graduation_month);
