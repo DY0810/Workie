@@ -66,6 +66,13 @@
     "postings_at_probe": 40
   },
   {
+    "name": "AiDash",
+    "ats": "greenhouse",
+    "token": "aidashinc",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 19
+  },
+  {
     "name": "Air Apps",
     "ats": "ashby",
     "token": "airapps",
@@ -178,6 +185,13 @@
     "postings_at_probe": 55
   },
   {
+    "name": "Amplify",
+    "ats": "ashby",
+    "token": "amplify",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 32
+  },
+  {
     "name": "Amplitude",
     "ats": "greenhouse",
     "token": "amplitude",
@@ -224,6 +238,13 @@
     "verified_at": "2026-08-18T04:01:19.161Z"
   },
   {
+    "name": "Aries Global",
+    "ats": "ashby",
+    "token": "ariesglobal",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 14
+  },
+  {
     "name": "Arini",
     "ats": "ashby",
     "token": "arini",
@@ -231,6 +252,13 @@
       "voice-ai"
     ],
     "verified_at": "2026-08-18T04:01:19.379Z"
+  },
+  {
+    "name": "Armadin",
+    "ats": "ashby",
+    "token": "armadin",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 26
   },
   {
     "name": "Asana",
@@ -370,6 +398,13 @@
     "postings_at_probe": 10
   },
   {
+    "name": "Axiom Math",
+    "ats": "ashby",
+    "token": "axiommath",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 3
+  },
+  {
     "name": "Baidu",
     "ats": "greenhouse",
     "token": "baidu",
@@ -463,6 +498,13 @@
     ],
     "verified_at": "2026-10-13T06:17:41.024Z",
     "postings_at_probe": 54
+  },
+  {
+    "name": "Braze",
+    "ats": "greenhouse",
+    "token": "braze",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 354
   },
   {
     "name": "Brex",
@@ -578,6 +620,20 @@
       "voice-ai"
     ],
     "verified_at": "2026-08-18T04:01:22.777Z"
+  },
+  {
+    "name": "Certa",
+    "ats": "ashby",
+    "token": "certa",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 9
+  },
+  {
+    "name": "CesiumAstro",
+    "ats": "lever",
+    "token": "CesiumAstro",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 357
   },
   {
     "name": "Charta Health",
@@ -1225,6 +1281,13 @@
     "postings_at_probe": 22
   },
   {
+    "name": "Firework",
+    "ats": "lever",
+    "token": "fireworkhq",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 24
+  },
+  {
     "name": "Fireworks AI",
     "ats": "ashby",
     "token": "fireworks",
@@ -1763,6 +1826,13 @@
     "token": "inversionspace",
     "verified_at": "2026-10-29T01:12:01.419Z",
     "postings_at_probe": 90
+  },
+  {
+    "name": "Ixian Robotics",
+    "ats": "ashby",
+    "token": "ixianrobotics",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 7
   },
   {
     "name": "Jellyvision",
@@ -2422,6 +2492,13 @@
     "postings_at_probe": 40
   },
   {
+    "name": "Nooks",
+    "ats": "ashby",
+    "token": "nooks",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 56
+  },
+  {
     "name": "Northbeam",
     "ats": "greenhouse",
     "token": "northbeam",
@@ -2742,6 +2819,20 @@
     "postings_at_probe": 18
   },
   {
+    "name": "Persona AI",
+    "ats": "ashby",
+    "token": "persona.ai",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 23
+  },
+  {
+    "name": "Pika",
+    "ats": "ashby",
+    "token": "pika",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 18
+  },
+  {
     "name": "Pinecone",
     "ats": "ashby",
     "token": "pinecone",
@@ -2779,6 +2870,13 @@
     ],
     "verified_at": "2026-08-24T18:58:41.705Z",
     "postings_at_probe": 1
+  },
+  {
+    "name": "Pivotal",
+    "ats": "lever",
+    "token": "pivotal",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 36
   },
   {
     "name": "Plaid",
@@ -3023,6 +3121,13 @@
     "token": "revel",
     "verified_at": "2026-11-06T19:49:34.608Z",
     "postings_at_probe": 32
+  },
+  {
+    "name": "Rhoda AI",
+    "ats": "ashby",
+    "token": "rhoda-ai",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 45
   },
   {
     "name": "Rime",
@@ -3784,6 +3889,13 @@
     "postings_at_probe": 11
   },
   {
+    "name": "UiPath",
+    "ats": "ashby",
+    "token": "uipath",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 103
+  },
+  {
     "name": "Upscale AI",
     "ats": "lever",
     "token": "upscale-ai",
@@ -3835,6 +3947,13 @@
       "voice-ai"
     ],
     "verified_at": "2026-08-18T04:01:40.350Z"
+  },
+  {
+    "name": "Veeda AI",
+    "ats": "ashby",
+    "token": "veeda-ai",
+    "verified_at": "2026-11-10T02:51:44.093Z",
+    "postings_at_probe": 10
   },
   {
     "name": "Vercel",
