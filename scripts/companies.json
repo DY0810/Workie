@@ -49,6 +49,13 @@
     "postings_at_probe": 4
   },
   {
+    "name": "Addepar",
+    "ats": "greenhouse",
+    "token": "addepar1",
+    "verified_at": "2026-11-11T13:28:29.218Z",
+    "postings_at_probe": 116
+  },
+  {
     "name": "Affirm",
     "ats": "greenhouse",
     "token": "affirm",
@@ -1354,6 +1361,13 @@
     "postings_at_probe": 13
   },
   {
+    "name": "Formulary Financial",
+    "ats": "ashby",
+    "token": "formulary",
+    "verified_at": "2026-11-11T13:28:29.218Z",
+    "postings_at_probe": 7
+  },
+  {
     "name": "Freeform",
     "ats": "greenhouse",
     "token": "freeformfuturecorp",
@@ -2091,6 +2105,13 @@
     "postings_at_probe": 0
   },
   {
+    "name": "Lumbermen's Merchandising",
+    "ats": "greenhouse",
+    "token": "lumbermens",
+    "verified_at": "2026-11-11T13:28:29.218Z",
+    "postings_at_probe": 27
+  },
+  {
     "name": "Lyft",
     "ats": "greenhouse",
     "token": "lyft",
@@ -2452,6 +2473,13 @@
     ],
     "verified_at": "2026-10-13T06:17:52.193Z",
     "postings_at_probe": 54
+  },
+  {
+    "name": "Nex",
+    "ats": "greenhouse",
+    "token": "nex",
+    "verified_at": "2026-11-11T13:28:29.218Z",
+    "postings_at_probe": 59
   },
   {
     "name": "Nextdoor",
