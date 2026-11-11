@@ -17,7 +17,7 @@ import { ashby } from "./ats/ashby.ts";
 import { runAtsApplication, fillAtsApplication } from "./application-runner.ts";
 import { screenApplication, screeningQuestions, formQuestions } from "./screening.ts";
 import { AtsError } from "./ats/protocol.ts";
-import { AtsAnswerErrors, AtsIdentitySchema, answerError, atsFieldKey, formQuestionKey, undergraduateTranscript, type AtsApplication } from "./ats/protocol.ts";
+import { AtsAnswerErrors, AtsIdentitySchema, answerError, atsFieldKey, formQuestionKey, undergraduateTranscript, type AtsApplication, type AtsField } from "./ats/protocol.ts";
 import type { StageDispatch, StructuredGenerator } from "./runtime.ts";
 import type { StructuredGenerationResult } from "./providers.ts";
 import { createStructuredProvider, ProviderError, storeProviderApiKey, structuredBudgetLedger } from "./providers.ts";
@@ -262,6 +262,13 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
     let review: ReviewField[] | undefined, unreviewed = false;
     // Set when the form waits on the applicant's answers: like a form waiting on approval, it keeps its last picture.
     let asking = false;
+    // Only this computer's log: which fields were asked, why and at which step. Schonfeld's Country was asked only
+    // after Apply (2026-11-10) and nothing recorded what the form refused. Never the answer itself.
+    const logAsked = (fields: AtsField[], code: (key: string) => string) => {
+      process.stdout.write(JSON.stringify({ at: new Date().toISOString(), status: "form-question", company: application?.company ?? null,
+        stage: lease.state, fields: fields.map(field => ({ key: field.key, label: field.label.slice(0, 80), code: code(field.key),
+          options: field.options?.length ?? null })) }) + "\n");
+    };
     try {
       const localDocuments: Record<string, string> = {};
       const applicant = [applicationContext.answers.first_name, applicationContext.answers.last_name].filter((item): item is string => typeof item === 'string').join(' ');
@@ -307,7 +314,7 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
       }
       const missing = observed.fields.filter(field => field.required && field.kind !== 'file' &&
         adapter.answer(currentApplication, field) === undefined);
-      if (missing.length) { asking = true; return formQuestions(applicationContext, missing); }
+      if (missing.length) { asking = true; logAsked(missing, () => "NO_ANSWER"); return formQuestions(applicationContext, missing); }
       // A transcript upload takes the applicant's undergraduate transcript.
       for (const field of observed.fields) {
         if (field.kind === 'file' && localDocuments.transcript && undergraduateTranscript(field.label)) currentApplication.documents[field.key] = localDocuments.transcript;
@@ -412,11 +419,16 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
       // since a needs_answer with no question has nothing to answer and nothing resumes it.
       if (answerError(error) && runtime && application && !submissionStarted) {
         const observed = await adapter.observe(runtime, application, signal).catch(() => null);
-        const fields = (error instanceof AtsAnswerErrors ? error.errors : [error]).flatMap(item => {
+        const errors = error instanceof AtsAnswerErrors ? error.errors : [error];
+        const fields = errors.flatMap(item => {
           const field = observed?.fields.find(candidate => candidate.key === item.message);
           return field ? [{ ...field, options: item.options ?? field.options }] : [];
         });
-        if (fields.length) { asking = true; return formQuestions(applicationContext, fields); }
+        if (fields.length) {
+          asking = true;
+          logAsked(fields, key => errors.find(item => item.message === key)?.code ?? "UNKNOWN");
+          return formQuestions(applicationContext, fields);
+        }
       }
       if (submissionStarted) return { state: "submission_unknown" as const, reasonCode: "submission_response_lost", durable: true };
       // Only this computer's log: a timeout's first line names the step that waited, which the bounded reason cannot.
