@@ -96,6 +96,14 @@ describe.each(['sqlite', 'libsql'] as const)('%s consistent compact capture', (k
     expect([candidate.officialUrl, candidate.officialPostingId, candidate.disposition]).toEqual([embed, 2, 'candidate']);
   });
 
+  it('takes the official content from the board row when a list row for the same role was collected first', async () => {
+    const f = fixture(kind);
+    f.add(1, { canonicalUrl: 'https://go.example.test/1', description: null });
+    f.add(2, {}, '1');
+    const [candidate] = (await captureCandidateSnapshot(f.db, policy(), NOW)).candidates;
+    expect([candidate.officialPostingId, candidate.disposition, candidate.reasons]).toEqual([2, 'candidate', []]);
+  });
+
   it('uses only explicit SQL filters, live state and fixed effective age, not public geography/seniority', async () => {
     const f = fixture(kind);
     f.add(1, { seniority: 'senior+', country: 'DE', workMode: 'onsite' });

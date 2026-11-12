@@ -163,26 +163,28 @@ export async function captureCandidateSnapshot(db: ReadDb, policyInput: unknown,
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(p);
   });
+  const carriers = new Map<DiscoveryCandidate, number[]>();
   const candidates = [...groups.values()].map((group): DiscoveryCandidate => {
     const resolution = resolveApplicationIdentity(group[0].canonicalUrl, group.flatMap((p) => [
       ...p.sources, { source: '', sourceUrl: p.canonicalUrl, publisherId: null },
     ]));
-    // The posting that carries the official URL itself, so the worker's re-resolution of it (application-context.ts) agrees.
-    const officialPostingId = resolution.officialUrl
-      ? group.find((posting) => [posting.canonicalUrl, ...posting.sources.map((source) => source.sourceUrl)].some((url) =>
-        resolveApplicationIdentity(url, []).officialUrl === resolution.officialUrl))?.postingId ?? null
-      : null;
+    // The postings that carry the official URL themselves, so the worker's re-resolution of one (application-context.ts) agrees.
+    const carrierIds = resolution.officialUrl
+      ? group.filter((posting) => [posting.canonicalUrl, ...posting.sources.map((source) => source.sourceUrl)].some((url) =>
+        resolveApplicationIdentity(url, []).officialUrl === resolution.officialUrl)).map((posting) => posting.postingId)
+      : [];
     const candidate: DiscoveryCandidate = {
       targetKey: resolution.identity ? `official:${identityKey(resolution.identity)}` :
         `${resolution.status}:${hash(resolution.aliases)}`,
       identity: resolution.identity, identityStatus: resolution.status, officialUrl: resolution.officialUrl,
-      officialPostingId, officialContentHash: null,
+      officialPostingId: carrierIds[0] ?? null, officialContentHash: null,
       aliases: resolution.aliases, postings: group, disposition: 'candidate', reasons: resolution.reasons,
     };
+    carriers.set(candidate, carrierIds);
     screen(candidate, policy);
     return candidate;
   });
-  const officialIds = candidates.flatMap((candidate) => candidate.officialPostingId === null ? [] : [candidate.officialPostingId]);
+  const officialIds = [...carriers.values()].flat();
   if (officialIds.length) {
     const rows = await driver(db).select({
       postingId: postings.id, canonicalUrl: postings.canonicalUrl, company: postings.company, title: postings.title,
@@ -191,6 +193,8 @@ export async function captureCandidateSnapshot(db: ReadDb, policyInput: unknown,
     assertBytes(rows);
     const byId = new Map(rows.map((row) => [row.postingId, row]));
     for (const candidate of candidates) {
+      // A list row collected before the board's own row has no description: the official posting is the first carrier with one.
+      candidate.officialPostingId = carriers.get(candidate)!.find((id) => byId.get(id)?.description?.trim()) ?? candidate.officialPostingId;
       const row = candidate.officialPostingId === null ? undefined : byId.get(candidate.officialPostingId);
       if (row?.description?.trim()) candidate.officialContentHash = officialContentHash({
         canonicalUrl: row.canonicalUrl, company: row.company, title: row.title,
