@@ -3088,6 +3088,13 @@
     "postings_at_probe": 147
   },
   {
+    "name": "REGENT",
+    "ats": "ashby",
+    "token": "regent",
+    "verified_at": "2026-11-12T08:52:15.107Z",
+    "postings_at_probe": 60
+  },
+  {
     "name": "Relay",
     "ats": "greenhouse",
     "token": "relaypro",
