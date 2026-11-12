@@ -614,6 +614,8 @@ function extractEmploymentType(
   body: string,
   source: SourceFields | null | undefined,
 ): EmploymentType | null {
+  // Ashby files many internships as "FullTime" (the hours, not the kind), so an intern title outranks it.
+  if (source?.employmentType === 'full-time' && EMPLOYMENT_TITLE[0][1].test(title)) return 'internship';
   if (source?.employmentType) return source.employmentType;
   for (const [type, pattern] of EMPLOYMENT_TITLE) if (pattern.test(title)) return type;
   const roleText = body.replace(NON_ROLE_EMPLOYMENT, ' ');
