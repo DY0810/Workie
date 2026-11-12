@@ -358,6 +358,12 @@ describe('precedence', () => {
     expect(result.location).toBe('Austin, Texas');
   });
 
+  it('reads a full-time source field under an intern title as an internship', () => {
+    const fields = { employmentType: 'full-time' as const };
+    expect(extract({ title: 'Software Engineer Intern', description: '', sourceFields: fields }).employment_type).toBe('internship');
+    expect(extract({ title: 'Internal Tools Engineer', description: '', sourceFields: fields }).employment_type).toBe('full-time');
+  });
+
   it('falls back to the text when the source said nothing', () => {
     const result = extract({
       title: 'Software Engineer',
