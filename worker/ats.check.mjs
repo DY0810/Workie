@@ -37,6 +37,19 @@ test('a hosted upload marked required only by its label asterisk is required', {
       [['question_1', 'Undergraduate Transcript', true], ['question_2', 'Graduate Transcript', false]]);
   } finally { await browser.close(); }
 });
+test('a hosted label longer than the limit keeps its question and moves the rest to the description', { skip: !browserReady }, async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    // ParetoHealth's live form (2026-11-13): the label holds the whole statement to attest to, 1,308 characters.
+    const statement = 'Pareto requires this. '.repeat(60).trim();
+    await page.setContent(`<form id="application-form"><label id="question_1-label" for="question_1">Do you attest to the following statement? ${statement}*</label>` +
+      '<input id="question_1" role="combobox" aria-required="true"><div id="question_1-description">Select one.</div></form>');
+    const fields = await hostedFields(page.locator('form'));
+    assert.deepEqual(fields.map(({ label, description }) => [label, description]), [['Do you attest to the following statement?', `${statement} Select one.`]]);
+    AtsObservationSchema.parse({ identity: { ats: 'greenhouse', tenant: 'fixture', requisition: '1' }, company: 'Fixture Co', role: 'Intern', fields, actions: ['fill'] });
+  } finally { await browser.close(); }
+});
 test('the applicant transcript fits an undergraduate or plain transcript upload, never a graduate one', () => {
   for (const label of ['Undergraduate Transcript', 'Transcript', 'Unofficial Transcript']) assert.equal(undergraduateTranscript(label), true, label);
   for (const label of ['Graduate Transcript', 'Resume/CV', 'Cover Letter']) assert.equal(undergraduateTranscript(label), false, label);
@@ -653,7 +666,7 @@ const { formQuestionKey } = await import('./ats/protocol.ts');
 const ashbyPosting = '3813977e-5940-456d-bf5a-16efcdc3a6dc';
 const ashbyEntry = (path, label, input, required = true) => `<div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title${required ? ' _required_f7cvd_91' : ''}" for="${path}">${label}</label>${input}</div>`;
 const ashbyYesNo = (path) => `<div class="ashby-application-form-input-yesno"><button type="button" aria-pressed="false">Yes</button><button type="button" aria-pressed="false">No</button><input type="checkbox" tabindex="-1" name="${path}"></div>`;
-function ashbyMarkup(title) {
+function ashbyMarkup(title, extra = '') {
   const group = ['Product', 'Infra', 'AI'].map((option, index) => `<div class="ashby-application-form-input-checkbox-group-option"><input type="checkbox" id="g-${index}" name="${option}"><label for="g-${index}" class="ashby-application-form-input-checkbox-group-option-label">${option}</label></div>`).join('');
   return `<!doctype html><title>${title}</title><div class="ashby-application-form-container">
     ${ashbyEntry('_systemfield_name', 'Legal Name', '<input class="ashby-application-form-input-text" name="_systemfield_name" id="_systemfield_name">')}
@@ -663,7 +676,7 @@ function ashbyMarkup(title) {
     ${ashbyEntry('bed95633-1b6e-4cd0-9eaf-c5a9f75ac35d', 'Are you authorized to work lawfully in the United States?', ashbyYesNo('bed95633-1b6e-4cd0-9eaf-c5a9f75ac35d'))}
     ${ashbyEntry('d33e2a8f-3742-4e5e-b91c-b7607d3cdf63', 'Are you able to work from our office three days per week?', ashbyYesNo('d33e2a8f-3742-4e5e-b91c-b7607d3cdf63'))}
     <fieldset class="ashby-application-form-input-checkbox-group"><label class="ashby-application-form-question-title _required_f7cvd_91" for="5f7757f0-b2ee-41b2-b9d0-0212461ed5a2">What type of engineering role are you interested in?</label>${group}</fieldset>
-    <button type="button" class="ashby-application-form-submit-button">Submit Application</button></div>
+    ${extra}<button type="button" class="ashby-application-form-submit-button">Submit Application</button></div>
     <script>
       // Like Ashby, every answer saves to the server as it changes: typing half a second after the last key or at once on blur.
       const save = (path, value) => fetch('/api/non-user-graphql?op=ApiSetFormValue', { method: 'POST', body: JSON.stringify({ path, value }) });
@@ -698,7 +711,7 @@ function ashbyMarkup(title) {
 }
 const ashbyRequired = ['_systemfield_name', '_systemfield_email', '_systemfield_resume', '09a328e0-8d57-4f88-86ab-688de1657b17',
   'bed95633-1b6e-4cd0-9eaf-c5a9f75ac35d', 'd33e2a8f-3742-4e5e-b91c-b7607d3cdf63', '5f7757f0-b2ee-41b2-b9d0-0212461ed5a2'];
-async function ashbyFixture(title = 'Product Designer @ Fixture Co') {
+async function ashbyFixture(title = 'Product Designer @ Fixture Co', extra = '') {
   const fixture = { saved: {} };
   const server = createServer(async (request, response) => {
     if (request.url.includes('op=ApiSetFormValue')) {
@@ -717,7 +730,7 @@ async function ashbyFixture(title = 'Product Designer @ Fixture Co') {
       return response.end(JSON.stringify({ missing: ashbyRequired.filter(path => !fixture.saved[path]?.length), spam: !!fixture.spam }));
     }
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    response.end(ashbyMarkup(title));
+    response.end(ashbyMarkup(title, extra));
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
@@ -780,6 +793,37 @@ test('the Ashby fixture is observed, answered from the profile and the inbox, fi
   }
 });
 
+// Saronic's live form (2026-11-13): an education entry titled twice, whose school suggestions are three stacked lines.
+const ashbySchool = `<div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title _required_f7cvd_91" for="_systemfield_education_history">College/University</label>
+  <div><label class="ashby-application-form-question-title _required_f7cvd_91" for="_systemfield_education_history-school">School</label>
+  <div><input class="ashby-application-form-input-autocomplete" role="combobox" id="school"></div></div><div id="schools"></div></div>
+  <script>{ const input = document.getElementById('school'), menu = document.getElementById('schools');
+    input.addEventListener('input', () => { menu.innerHTML = '';
+      for (const [name, country, site] of [['Stanford University', 'United States', 'stanford.edu'], ['Stafford University', 'Uganda', 'suu.ac.ug']]) {
+        const item = document.createElement('div'); item.setAttribute('role', 'option');
+        item.innerHTML = '<div>' + name + '</div><div>' + country + '</div><div>' + site + '</div>';
+        item.onclick = () => { input.value = name; menu.innerHTML = ''; }; menu.append(item); } }); }</script>`;
+test('an Ashby school picker is one question, and its three-line suggestion is picked by the school name or its full line', { skip: !browserReady }, async () => {
+  const { server, origin, input } = await ashbyFixture(undefined, ashbySchool);
+  const directory = await mkdtemp(join(tmpdir(), 'workie-ats-ashby-'));
+  const runtime = await createBrowserRuntime({ userDataDir: join(directory, 'browser'), approvedOrigins: [origin], allowLoopback: true });
+  try {
+    const observed = await ashby.observe(runtime, input);
+    const schools = observed.fields.filter(field => field.kind === 'combobox');
+    assert.deepEqual(schools.map(field => field.label), ['School']);
+    for (const answer of ['Stanford University', 'Stanford University, United States, stanford.edu']) {
+      input.answers[formQuestionKey(schools[0])] = answer;
+      await ashby.fill(runtime, input, { ...observed, fields: schools });
+      assert.equal(await (await runtime.page()).locator('#school').inputValue(), 'Stanford University');
+    }
+    input.answers[formQuestionKey(schools[0])] = 'Stanfurd';
+    await assert.rejects(ashby.fill(runtime, input, { ...observed, fields: schools }), { code: 'ANSWER_OPTION_INVALID' });
+  } finally {
+    await runtime.close();
+    await new Promise((resolve) => server.close(resolve));
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 test('an Ashby submit its spam filter refuses ends as refused, not as a timeout', { skip: !browserReady }, async () => {
   const fixture = await ashbyFixture();
   fixture.spam = true;

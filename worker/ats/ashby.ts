@@ -63,7 +63,9 @@ export function ashbyAnswer(input: AtsApplication, field: AtsField): AtsValue | 
 }
 
 async function formFields(page: Page): Promise<AtsField[]> {
-  const raw = await page.evaluate(() => [...document.querySelectorAll('label.ashby-application-form-question-title')].map(node => {
+  // An education entry is titled twice ("College/University" around "School"); the inner title is the question.
+  const raw = await page.evaluate(() => [...document.querySelectorAll('label.ashby-application-form-question-title')]
+    .filter(node => node.parentElement!.querySelectorAll('label.ashby-application-form-question-title').length === 1).map(node => {
     const label = node as HTMLLabelElement, box = label.parentElement!;
     const has = (selector: string) => Boolean(box.matches(selector) || box.querySelector(selector));
     const labels = (selector: string) => [...box.querySelectorAll(selector)].map(item => item.textContent?.trim() ?? '');
@@ -125,16 +127,18 @@ async function fillOne(page: Page, box: Locator, field: AtsField, value: AtsValu
     if (!await options.first().waitFor({ timeout: 10_000 }).then(() => true, () => false)) throw new AtsError('ANSWER_OPTION_INVALID', field.key);
     // Only the exact place, or the one suggestion that extends it ("San Francisco" -> "San Francisco, California, ..."),
     // is the applicant's; anything else goes to the inbox with the geocoder's own spellings to pick from.
-    const texts = (await options.allInnerTexts()).map(item => item.trim());
+    // A school suggestion is three lines (name, country, website: Saronic, 2026-11-13); joined, the name alone is extended by it.
+    const texts = (await options.allInnerTexts()).map(item => item.trim().split(/\s*\n\s*/).join(', '));
     const matches = texts.includes(value) ? [value] : texts.filter(item => item.startsWith(`${value}, `));
     if (matches.length !== 1) {
       await page.keyboard.press('Escape');
       throw new AtsError('ANSWER_OPTION_INVALID', field.key, texts.length ? texts.slice(0, 100) : undefined);
     }
     const text = matches[0];
-    await options.filter({ hasText: text }).first().click();
+    await options.nth(texts.indexOf(text)).click(); // by position: a multi-line suggestion's own text has no separators to match
     // The input takes the picked suggestion a moment after the click.
-    await page.waitForFunction(([node, text]) => (node as HTMLInputElement).value === text, [await input.elementHandle(), text] as const, { timeout: 5_000 }).catch(() => {});
+    await page.waitForFunction(([node, text]) => { const shown = (node as HTMLInputElement).value;
+      return shown === text || Boolean(shown) && text.startsWith(`${shown}, `); },[await input.elementHandle(), text] as const, { timeout: 5_000 }).catch(() => {});
   } else {
     const input = box.locator('input.ashby-application-form-input-text, textarea, input.ashby-application-form-input-date').first();
     await input.fill(field.kind === 'date' ? pickerDate(value) : value);
@@ -159,7 +163,8 @@ async function verifyOne(box: Locator, field: AtsField, value: AtsValue) {
   // An autocomplete holds the suggestion it picked: the answer itself or the one place extending it.
   if (field.kind === 'combobox' && typeof value === 'string') {
     const shown = (await box.locator('input[role=combobox]').inputValue()).trim();
-    return shown === value || shown.startsWith(`${value}, `);
+    // A school picker shows only the name of the suggestion picked ("Stanford University, United States, stanford.edu").
+    return shown === value || shown.startsWith(`${value}, `) || Boolean(shown) && value.startsWith(`${shown}, `);
   }
   return await box.locator('input.ashby-application-form-input-text, textarea, input.ashby-application-form-input-date').first().inputValue() ===
     (field.kind === 'date' && typeof value === 'string' ? pickerDate(value) : value);
