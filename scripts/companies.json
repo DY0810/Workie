@@ -583,13 +583,6 @@
     "postings_at_probe": 49
   },
   {
-    "name": "C3 AI",
-    "ats": "greenhouse",
-    "token": "c3ascend",
-    "verified_at": "2026-11-13T05:49:04.558Z",
-    "postings_at_probe": 3
-  },
-  {
     "name": "Cadence Solutions",
     "ats": "greenhouse",
     "token": "solutions",
@@ -1278,13 +1271,6 @@
     "postings_at_probe": 162
   },
   {
-    "name": "Etched",
-    "ats": "ashby",
-    "token": "Etched",
-    "verified_at": "2026-11-13T05:49:04.558Z",
-    "postings_at_probe": 116
-  },
-  {
     "name": "Eulerity",
     "ats": "greenhouse",
     "token": "eulerity",
@@ -1402,13 +1388,6 @@
     "verified_at": "2026-08-18T04:01:26.291Z"
   },
   {
-    "name": "Five Rings",
-    "ats": "greenhouse",
-    "token": "fiveringsllc",
-    "verified_at": "2026-11-13T05:49:04.558Z",
-    "postings_at_probe": 19
-  },
-  {
     "name": "Flagship Pioneering",
     "ats": "greenhouse",
     "token": "flagshippioneeringinc",
@@ -1524,13 +1503,6 @@
     "postings_at_probe": 7
   },
   {
-    "name": "Garda Capital Partners",
-    "ats": "greenhouse",
-    "token": "gardacp",
-    "verified_at": "2026-11-13T05:49:04.558Z",
-    "postings_at_probe": 9
-  },
-  {
     "name": "GCM Grosvenor",
     "ats": "greenhouse",
     "token": "gcmgrosvenor",
@@ -1586,13 +1558,6 @@
     "token": "genesis-molecular-ai",
     "verified_at": "2026-11-13T05:49:04.558Z",
     "postings_at_probe": 10
-  },
-  {
-    "name": "Genius AI",
-    "ats": "ashby",
-    "token": "geniusai",
-    "verified_at": "2026-11-13T05:49:04.558Z",
-    "postings_at_probe": 17
   },
   {
     "name": "GenMD",
@@ -1860,13 +1825,6 @@
       "voice-ai"
     ],
     "verified_at": "2026-08-18T04:01:21.813Z"
-  },
-  {
-    "name": "Hyannis Port Research",
-    "ats": "greenhouse",
-    "token": "hyannisportresearch",
-    "verified_at": "2026-11-13T05:49:04.558Z",
-    "postings_at_probe": 12
   },
   {
     "name": "Hyphenate",
@@ -3140,13 +3098,6 @@
       "yc"
     ],
     "verified_at": "2026-08-18T04:01:35.280Z"
-  },
-  {
-    "name": "Point72",
-    "ats": "greenhouse",
-    "token": "point72",
-    "verified_at": "2026-11-13T05:49:04.558Z",
-    "postings_at_probe": 200
   },
   {
     "name": "PolyAI",
