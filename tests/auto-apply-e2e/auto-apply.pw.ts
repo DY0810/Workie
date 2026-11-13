@@ -16,6 +16,7 @@ const ANSWER = ['I use Fixture Co tools every week.', 'I build TypeScript APIs a
   'Your interns ship real features.', 'I like CI that catches bugs early.', 'The team writes about its incidents openly.',
   'I want to learn from that.', 'Remote work suits how I study.', 'Thank you for reading.'].join('\n');
 const EDITED = 'I rely on Fixture Co every week and want to make its APIs faster.';
+const TEMPLATE = 'Hi {Name}, I applied to {Roles} at {Company}. {Overlap} I can move to {City}.';
 const ROLE2_ANSWER = 'New York is close to my school, and I want to build Fixture Co APIs.';
 
 // A tiny master resume, as in tests/auto-apply/greenhouse-pipeline.mjs.
@@ -178,6 +179,12 @@ test('a run fills, asks, takes review changes, reuses a choice on the next form 
       await policy.getByRole('button', { name: 'Enable Auto Apply' }).click();
       await expect(policy.getByRole('status')).toContainText('accepted');
 
+      // Outreach goes on before anything is submitted: only later submissions get a recruiter message.
+      await page.goto('/applications?view=outreach');
+      await page.getByRole('textbox', { name: 'Message template' }).fill(TEMPLATE);
+      await page.getByRole('button', { name: 'Turn on outreach' }).click();
+      await expect(page.getByText('No messages yet.')).toBeVisible();
+
       // Started from Settings over the Live tab, so Live is already polling when the worker opens the form.
       await page.goto('/applications?view=live&settings=1');
       const drawer = page.getByRole('dialog', { name: 'Settings' });
@@ -330,6 +337,29 @@ test('a run fills, asks, takes review changes, reuses a choice on the next form 
       await expect(answerRow(live, HEARD_QUESTION)).toContainText('University career fair');
       await expect(answerRow(live, QUESTION)).toContainText(ROLE2_ANSWER);
       await logStates();
+    });
+
+    await test.step('h: the submitted role queued one recruiter message, marked sent only once every slot is filled', async () => {
+      await page.goto('/applications?view=outreach');
+      const message = page.getByRole('list', { name: 'Outreach' }).getByRole('listitem');
+      await expect(message).toHaveCount(1);
+      await expect(message.getByRole('heading', { level: 2 })).toHaveText('Fixture Co');
+      const text = message.getByRole('textbox', { name: 'Message', exact: true });
+      await expect(text).toHaveValue('Hi {Name}, I applied to the Software Engineering Intern role at Fixture Co. {Overlap} I can move to {City}.');
+      await message.getByRole('textbox', { name: 'Recruiter\'s name' }).fill('Sam Fixture');
+      await message.getByRole('textbox', { name: 'LinkedIn profile link' }).fill('https://www.linkedin.com/in/Sam-Fixture/');
+      await message.getByRole('textbox', { name: 'Overlap line' }).fill('We both build fixtures.');
+      await expect(message.getByText('Fill in {City} before sending.')).toBeVisible();
+      await message.getByRole('button', { name: 'Mark sent', exact: true }).click();
+      await message.getByRole('button', { name: 'Yes, mark sent' }).click();
+      await expect(message.getByRole('alert')).toHaveText('Fill in {City} first.');
+      await text.fill((await text.inputValue()).replace('{City}', 'Los Angeles'));
+      await expect(text).toHaveValue('Hi Sam, I applied to the Software Engineering Intern role at Fixture Co. We both build fixtures. I can move to Los Angeles.');
+      await page.screenshot({ path: join(screens, '6-outreach.png'), fullPage: true });
+      await message.getByRole('button', { name: 'Mark sent', exact: true }).click();
+      await message.getByRole('button', { name: 'Yes, mark sent' }).click();
+      await expect(message.getByText('sent', { exact: true })).toBeVisible();
+      await expect(message.getByRole('link', { name: 'Sam Fixture' })).toHaveAttribute('href', 'https://www.linkedin.com/in/sam-fixture');
     });
   } finally {
     worker?.stop();

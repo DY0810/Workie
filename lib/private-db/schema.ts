@@ -126,3 +126,4 @@ export { workerPairings, workers, applicationRuns, applications, applicationEven
 export { applicationSubmissions, applicationReceipts } from './submission-schema.ts';
 export { discoveryManifests, discoveryTargets, legacyImportPreviews, manualApplicationMarks } from './discovery-schema.ts';
 export { questions, questionAnswers, questionReviews, questionInterventions, inboxReads } from './question-schema.ts';
+export { outreach, outreachSettings } from './outreach-schema.ts';

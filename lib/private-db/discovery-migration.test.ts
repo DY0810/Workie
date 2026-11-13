@@ -24,7 +24,7 @@ it('migrates private storage twice while retaining prior assignment and terminal
     'private_application_artifact_no_update', 'private_application_artifact_no_delete',
   ]) expect(triggers.map((row) => row.name)).toContain(name);
   expect(await db.all(sql`pragma foreign_key_check`)).toEqual([]);
-  expect(await db.all(sql`select * from __drizzle_migrations`)).toHaveLength(17);
+  expect(await db.all(sql`select * from __drizzle_migrations`)).toHaveLength(18);
   await db.run(sql`insert into private_user (id,name,email,email_verified,created_at,updated_at)
     values ('alice','Synthetic','alice@example.test',1,1,1)`);
   await db.run(sql`insert into private_policy_version (owner_id,version,hash,policy,created_at)
