@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import * as dbModule from '../private-db/index.ts';
 import { workers, workerPairings, policyHeads, policyVersions, applicationRuns, applications, rateLimit } from '../private-db/schema.ts';
+import { outreach } from '../private-db/outreach-schema.ts';
 import { POST as createPairingRoute } from '../../app/api/workers/pairings/route.ts';
 import { GET as listWorkersRoute } from '../../app/api/workers/route.ts';
 import { POST as pairRoute } from '../../app/api/worker/pair/route.ts';
@@ -15,6 +16,7 @@ import { POST as heartbeatRoute } from '../../app/api/worker/heartbeat/route.ts'
 import { POST as providerConfigRoute } from '../../app/api/worker/provider-config/route.ts';
 import { POST as submissionIntentRoute } from '../../app/api/worker/applications/[id]/submission-intent/route.ts';
 import { POST as receiptRoute } from '../../app/api/worker/applications/[id]/receipt/route.ts';
+import { POST as outreachResultRoute } from '../../app/api/worker/outreach/[id]/result/route.ts';
 import { DELETE as revokeRoute } from '../../app/api/workers/[id]/route.ts';
 import { POST as createRunRoute } from '../../app/api/application-runs/route.ts';
 import { enqueueApplication } from './test-enqueue.ts';
@@ -87,8 +89,10 @@ beforeEach(async () => {
       else {
         const submission = path.match(/^\/api\/worker\/applications\/([^/]+)\/submission-intent$/);
         const receipt = path.match(/^\/api\/worker\/applications\/([^/]+)\/receipt$/);
+        const sent = path.match(/^\/api\/worker\/outreach\/([^/]+)\/result$/);
         if (submission) response = await submissionIntentRoute(request, { params: Promise.resolve({ id: submission[1] }) });
         else if (receipt) response = await receiptRoute(request, { params: Promise.resolve({ id: receipt[1] }) });
+        else if (sent) response = await outreachResultRoute(request, { params: Promise.resolve({ id: sent[1] }) });
         else response = new Response(null, { status: 404 });
       }
       res.statusCode = response.status;
@@ -197,6 +201,30 @@ describe('Phase 3 real route handlers over loopback with household auth', () => 
     expect(p.ReceiptResponseSchema.parse(await receipt.json())).toMatchObject({ state: 'submitted', replayed: false });
     expect((await db.select().from(applications).where(eq(applications.id, lease.applicationId)))[0]).toMatchObject({ state: 'submitted' });
   });
+  it('hands an approved recruiter message to its owner\'s asking worker and takes that worker\'s report', async () => {
+    const worker = await paired(), other = await paired(bob), id = randomUUID(), now = Date.now();
+    await db.insert(outreach).values({ id, ownerId: alice.id, companyKey: 'fixture co', company: 'Fixture Co',
+      roles: [{ applicationId: randomUUID(), role: 'Synthetic Intern', submittedAt: now }],
+      recruiter: { name: 'Sam Fixture', title: null, url: 'https://www.linkedin.com/in/sam-fixture' },
+      subject: '', body: 'Hi Sam.', state: 'approved', createdAt: now, updatedAt: now });
+    const ask = async (token: string, outreach = true) => p.PollResponseSchema.parse(await (await http('/api/worker/poll',
+      { protocolVersion: 1, ...(outreach ? { outreach: true } : {}) }, '', { authorization: `Bearer ${token}` })).json());
+    const report = (token: string | null, body: object) => http(`/api/worker/outreach/${id}/result`, { protocolVersion: 1, ...body }, '',
+      token ? { authorization: `Bearer ${token}` } : {});
+    // Never to another applicant's worker, nor to a worker that did not ask.
+    expect((await ask(other.token)).outreach).toBeUndefined();
+    expect((await ask(worker.token, false)).outreach).toBeUndefined();
+    expect((await ask(worker.token)).outreach).toMatchObject({ id, name: 'Sam Fixture', body: 'Hi Sam.', approvedAt: now });
+    expect((await ask(worker.token)).outreach).toBeUndefined();
+    const sent = { outcome: 'sent', threadUrl: 'https://www.linkedin.com/messaging/thread/2-abc/' };
+    expect((await report(null, sent)).status).toBe(401);
+    expect((await report(other.token, sent)).status).toBe(404);
+    expect((await report(worker.token, { outcome: 'sent', threadUrl: 'https://evil.example.test/' })).status).toBe(400);
+    const taken = await report(worker.token, sent);
+    expect([taken.status, await taken.json()]).toEqual([200, { state: 'sent' }]);
+    expect((await db.select().from(outreach).where(eq(outreach.id, id)))[0]).toMatchObject({ state: 'sent', threadUrl: sent.threadUrl });
+  });
+
   it('PIN rotation revokes workers and pauses leases, while browser sessions stay valid', async () => {
     const worker = await paired();
     const run = await running(worker.workerId);

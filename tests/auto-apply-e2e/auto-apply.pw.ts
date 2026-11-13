@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
-import { pairWorker, startWorker } from './worker.mjs';
+import { pairWorker, signInLinkedin, startWorker } from './worker.mjs';
 
 const state = JSON.parse(readFileSync(process.env.E2E_STATE!, 'utf8'));
 const root = resolve(state.out, '../../..');
@@ -339,7 +339,7 @@ test('a run fills, asks, takes review changes, reuses a choice on the next form 
       await logStates();
     });
 
-    await test.step('h: the submitted role queued one recruiter message, marked sent only once every slot is filled', async () => {
+    await test.step('h: the submitted role queued one recruiter message; approved, the worker rehearses it and then sends it', async () => {
       await page.goto('/applications?view=outreach');
       const message = page.getByRole('list', { name: 'Outreach' }).getByRole('listitem');
       await expect(message).toHaveCount(1);
@@ -356,9 +356,18 @@ test('a run fills, asks, takes review changes, reuses a choice on the next form 
       await text.fill((await text.inputValue()).replace('{City}', 'Los Angeles'));
       await expect(text).toHaveValue('Hi Sam, I applied to the Software Engineering Intern role at Fixture Co. We both build fixtures. I can move to Los Angeles.');
       await page.screenshot({ path: join(screens, '6-outreach.png'), fullPage: true });
-      await message.getByRole('button', { name: 'Mark sent', exact: true }).click();
-      await message.getByRole('button', { name: 'Yes, mark sent' }).click();
-      await expect(message.getByText('sent', { exact: true })).toBeVisible();
+      // Signed in to LinkedIn (the stack's stand-in), the worker asks for approved messages on its idle polls.
+      await signInLinkedin(state, ownerId);
+      const approve = async () => {
+        await message.getByRole('button', { name: 'Approve and send', exact: true }).click();
+        await message.getByRole('button', { name: 'Yes, approve and send' }).click();
+      };
+      await approve();
+      // Its first message is a rehearsal: every check runs, nothing is typed, and the draft comes back.
+      await expect(message.getByText(/^Test run passed/)).toBeVisible({ timeout: 2 * 60_000 });
+      await approve();
+      await expect(message.getByText('sent', { exact: true })).toBeVisible({ timeout: 2 * 60_000 });
+      expect(worker!.child.exitCode).toBeNull();
       await expect(message.getByRole('link', { name: 'Sam Fixture' })).toHaveAttribute('href', 'https://www.linkedin.com/in/sam-fixture');
     });
   } finally {

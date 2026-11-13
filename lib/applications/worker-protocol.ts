@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { APPLICATION_STATES, SAFE_STAGES } from './state.ts';
+import { OUTREACH_NOT_SENT, OUTREACH_STATES, OutreachTaskSchema } from './outreach-protocol.ts';
 
 export const WORKER_PROTOCOL_VERSION = 1;
 /** The only Greenhouse tenant a non-production deployment lets a worker submit to; the worker serves its pages locally. */
@@ -54,7 +55,9 @@ export const PairingSummarySchema = z.strictObject({
 export const WorkerListSchema = z.strictObject({
   ownerId: z.string(), serverTime: timestamp, workers: z.array(WorkerSummarySchema), pairings: z.array(PairingSummarySchema),
 });
-export const PollRequestSchema = z.strictObject(protocol);
+// `outreach`: this worker is signed in to LinkedIn and will take one approved recruiter message. A flag, not a
+// capability, so a worker without it keeps pairing and polling exactly as before.
+export const PollRequestSchema = z.strictObject({ ...protocol, outreach: z.literal(true).optional() });
 export const LeaseRefSchema = z.strictObject({ applicationId: uuid, fence: revision, expectedRevision: revision });
 export const HeartbeatRequestSchema = z.strictObject({ ...protocol, lease: LeaseRefSchema.nullable() });
 export const CheckpointSchema = z.strictObject({ stage: z.enum(SAFE_STAGES), sequence: timestamp });
@@ -67,7 +70,16 @@ export const LeaseSchema = z.strictObject({
   state: ApplicationStateSchema, revision, fence: revision, leaseUntil: timestamp,
   checkpoint: CheckpointSchema.nullable(), mode: z.enum(['safe', 'reconcile']),
 });
-export const PollResponseSchema = z.strictObject({ ...clock, lease: LeaseSchema.nullable() });
+// `outreach` is present only on a poll that asked for it and got no application to work on; never on a heartbeat.
+export const PollResponseSchema = z.strictObject({ ...clock, lease: LeaseSchema.nullable(), outreach: OutreachTaskSchema.optional() });
+export const OutreachResultSchema = z.discriminatedUnion('outcome', [
+  z.strictObject({ ...protocol, outcome: z.literal('sent'),
+    threadUrl: z.string().regex(/^https:\/\/www\.linkedin\.com\/messaging\/thread\/[^?#\s]{1,300}$/).nullable() }),
+  z.strictObject({ ...protocol, outcome: z.literal('not_sent'), reasonCode: z.enum(OUTREACH_NOT_SENT) }),
+  // Send was pressed and the thread never showed the message: it may or may not have gone.
+  z.strictObject({ ...protocol, outcome: z.literal('unknown') }),
+]);
+export const OutreachResultAckSchema = z.strictObject({ state: z.enum(OUTREACH_STATES) });
 export const EventRequestSchema = z.strictObject({
   ...protocol, eventId: uuid, fence: revision, expectedRevision: revision,
   state: ApplicationStateSchema, checkpoint: CheckpointSchema, reasonCode: name.nullable(), evidence: EventEvidenceSchema,
@@ -177,6 +189,7 @@ export type HeartbeatRequest = z.infer<typeof HeartbeatRequestSchema>;
 export type Checkpoint = z.infer<typeof CheckpointSchema>;
 export type Lease = z.infer<typeof LeaseSchema>;
 export type PollResponse = z.infer<typeof PollResponseSchema>;
+export type OutreachResult = z.infer<typeof OutreachResultSchema>;
 export type EventRequest = z.infer<typeof EventRequestSchema>;
 export type EventResponse = z.infer<typeof EventResponseSchema>;
 export type RunCreate = z.infer<typeof RunCreateSchema>;

@@ -24,6 +24,14 @@ export function pairWorker(state, ownerId, grant) {
   return new Promise((done, fail) => child.on('exit', (code) => code === 0 ? done() : fail(new Error(`worker pair exited ${code}; see ${state.out}/worker-pair.log`))));
 }
 
+/** Runs `worker linkedin` against the stack's stand-in, which signs in by itself; resolves once the worker may send. */
+export function signInLinkedin(state, ownerId) {
+  const log = openSync(join(state.out, 'worker-linkedin.log'), 'a', 0o600);
+  const child = run(state, ownerId, 'linkedin', ['ignore', log, log]);
+  closeSync(log);
+  return new Promise((done, fail) => child.on('exit', (code) => code === 0 ? done() : fail(new Error(`worker linkedin exited ${code}; see ${state.out}/worker-linkedin.log`))));
+}
+
 /** Starts `worker start` in the background (logs to worker.log); stack.mjs also kills it on teardown. */
 export function startWorker(state, ownerId) {
   const log = openSync(join(state.out, 'worker.log'), 'a', 0o600);
