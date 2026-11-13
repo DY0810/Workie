@@ -20,6 +20,8 @@ import { privateJson, PrivateRequestError, type PrivateApi } from '../profile/ap
 import DocumentsPane from '../profile/documents-pane';
 import { SettingsButton, setSettingsOpen } from '../settings-drawer';
 import { CountBadge, StatusBadge } from '../status-badge';
+import { buttonClass, Command } from './command';
+import Outreach from './outreach';
 import { ApplicationQuestions, useQuestions } from './questions';
 import styles from '../workers/workers.module.css';
 
@@ -63,7 +65,7 @@ async function request(path: string, owner?: string) {
   }
 }
 
-type Tab = 'action' | 'live' | 'applied' | 'archived';
+type Tab = 'action' | 'live' | 'applied' | 'archived' | 'outreach';
 /** States in which the worker has the form open: filling it, or filling it again to submit it after Apply. */
 const FORM_STATES: readonly string[] = ['filling', 'ready', 'submitting'];
 const LIVE_POLL_MS = 3_000;
@@ -377,34 +379,6 @@ async function archive(app: App, ownerId: string) {
   if (!response.ok) throw new Error('Could not archive. Refresh and try again.');
 }
 
-const buttonClass = (primary?: boolean) => primary ? `${styles.button} ${styles.primary}` : styles.button;
-
-/** One command button with its own busy label, and its error beside it. */
-function Command({ label, busyLabel, confirm, primary, run, onDone }: {
-  label: string; busyLabel: string; confirm?: string; primary?: boolean; run: () => Promise<void>; onDone: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  // Asked on the page, not with window.confirm: embedded browsers (the Claude app's pane, in-app web views)
-  // drop that prompt and return false, so Apply and Archive did nothing there.
-  const [asking, setAsking] = useState(false);
-  const go = async () => {
-    setAsking(false); setBusy(true); setError('');
-    try { await run(); onDone(); } catch (e) { setError(e instanceof Error ? e.message : `Could not ${label.toLowerCase()}.`); }
-    finally { setBusy(false); }
-  };
-  if (asking) return <>
-    <span className={styles.muted}>{confirm}</span>
-    <button className={buttonClass(primary)} type="button" onClick={() => void go()}>Yes, {label.toLowerCase()}</button>
-    <button className={styles.button} type="button" autoFocus onClick={() => setAsking(false)}>Cancel</button>
-  </>;
-  return <>
-    {error && <span role="alert" className={styles.reason}>{error}</span>}
-    <button className={buttonClass(primary)} type="button" disabled={busy} onClick={() => confirm ? setAsking(true) : void go()}>
-      {busy ? busyLabel : label}</button>
-  </>;
-}
-
 /** A schedule in another time zone names it; one in the browser's own zone does not need to. */
 function zone(timeZone: string | null) {
   if (!timeZone || timeZone === Intl.DateTimeFormat().resolvedOptions().timeZone) return '';
@@ -418,8 +392,8 @@ const DIALOG_TITLES: Record<Dialog['kind'], string> = {
   answer: 'Answer', upload: 'Upload', approve: 'Approve', materials: 'Materials',
 };
 const EMPTY: Record<Tab, string> = { action: 'Nothing needs action.', live: 'Nothing is being applied right now. When the worker starts an application, you can watch it fill here.',
-  applied: 'No submitted applications yet.', archived: 'Nothing archived.' };
-const LIST_NAMES: Record<Tab, string> = { action: 'Needs action', live: 'Live', applied: 'Applied', archived: 'Archived' };
+  applied: 'No submitted applications yet.', archived: 'Nothing archived.', outreach: '' };
+const LIST_NAMES: Record<Tab, string> = { action: 'Needs action', live: 'Live', applied: 'Applied', archived: 'Archived', outreach: 'Outreach' };
 /** Rows waiting on the applicant first; queued and running rows need nothing from them. */
 const waitRank = (app: App) => ['queued', 'progress'].includes(statusBadge(app.state, app.reasonCode).tone) ? 1 : 0;
 
@@ -427,7 +401,7 @@ export default function Applications() {
   const [view, setView] = useState(initialView);
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const param = useSearchParams().get('view');
-  const tab: Tab = param === 'applied' || param === 'archived' || param === 'live' ? param : 'action';
+  const tab: Tab = param === 'applied' || param === 'archived' || param === 'live' || param === 'outreach' ? param : 'action';
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setView((current) => ({ ...current, loading: true, locked: true, error: '' }));
     try {
@@ -502,7 +476,7 @@ export default function Applications() {
 
   const applications = view.runs?.applications ?? [];
   const runs = view.runs?.runs ?? [];
-  const lists: Record<Tab, App[]> = { action: [], live: [], applied: [], archived: [] };
+  const lists: Record<Tab, App[]> = { action: [], live: [], applied: [], archived: [], outreach: [] };
   for (const app of applications) {
     const list = bucket(app, view.loadedAt);
     if (list) lists[list].push(app);
@@ -580,9 +554,9 @@ export default function Applications() {
     </div>}
     {!view.locked && <>
       <nav className="board-track" aria-label="Applications">
-        {(['action', 'live', 'applied'] as const).map((item) => <button key={item} type="button" className={`board-track-link ${styles.tab}`}
+        {(['action', 'live', 'applied', 'outreach'] as const).map((item) => <button key={item} type="button" className={`board-track-link ${styles.tab}`}
           aria-current={tab === item ? 'page' : undefined} onClick={() => showTab(item)}>
-          {LIST_NAMES[item]}<CountBadge count={lists[item].length} />
+          {LIST_NAMES[item]}{item !== 'outreach' && <CountBadge count={lists[item].length} />}
         </button>)}
       </nav>
       {tab === 'archived' && <p className={`${styles.message} ${styles.muted}`}>Archived items are removed 30 days after archiving.</p>}
@@ -594,7 +568,7 @@ export default function Applications() {
             setDialog({ kind: 'answer', id: app.id, open: true });
           }} onSaved={savedFields(app.id)} />)}
       </ul>}
-      {tab === 'live' && lists.live.length > 0 ? null : !lists[tab].length ? <p className={`${styles.message} ${styles.muted}`}>{tab === 'action' && !applications.length
+      {tab === 'outreach' ? <Outreach ownerId={ownerId} /> : tab === 'live' && lists.live.length > 0 ? null : !lists[tab].length ? <p className={`${styles.message} ${styles.muted}`}>{tab === 'action' && !applications.length
         ? 'No applications yet. Start auto apply from Settings after enabling a policy.' : EMPTY[tab]}</p> :
         <ul className={styles.cards} aria-label={LIST_NAMES[tab]}>
           {lists[tab].map((app) => {
