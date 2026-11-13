@@ -136,6 +136,37 @@ validation and rejects redirects. Local development alone may set
 origin. `localhost`, abbreviated IPs, other HTTP hosts, credentials/path/query
 in origins, and `NODE_TLS_REJECT_UNAUTHORIZED=0` are rejected.
 
+## Recruiter Messages On LinkedIn
+
+A worker sends the recruiter messages its applicant approved on the Outreach
+tab only after that applicant has signed in to LinkedIn in the worker's own
+browser window. With the same non-secret environment as above:
+
+```sh
+npm run worker -- linkedin
+```
+
+This opens LinkedIn in a window that belongs to the worker (its profile is
+`browser/linkedin` under the data directory, apart from the employers' forms).
+The applicant signs in there themself; the worker never sees or stores the
+password, and the command ends once LinkedIn shows a signed-in page. It can run
+while `start` is running.
+
+From then on the worker asks for one approved message on each poll that leaves
+it without an application to work on. Before typing, it checks that the profile
+did not redirect, that the name matches the one approved, that the message box
+is addressed to that one person, and that LinkedIn shows no earlier
+conversation. It sends only on the day of the approval, at most
+`OUTREACH_DAILY_CAP` messages in 24 hours, each in a visible window. The first
+message after a sign-in is a rehearsal: every check runs, nothing is typed, and
+the message returns to the tab to be approved again.
+
+A message is reported as sent only once the conversation shows the whole
+approved text. If Send was pressed and that never appears, or the worker
+stopped in between, the tab says the send is unconfirmed and nothing is sent
+again until the applicant has looked at LinkedIn. When LinkedIn asks to sign in
+again, the worker stops asking for messages until `linkedin` is run again.
+
 ## Leases, Checkpoints And Recovery
 
 The shared `lib/applications/worker-protocol.ts` is the wire authority. Requests

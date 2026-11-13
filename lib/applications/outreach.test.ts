@@ -8,8 +8,10 @@ import { openPrivateDb, migratePrivateDb, type PrivateDb } from '../private-db/i
 import { applications, applicationSubmissions, policyHeads, policyVersions, user } from '../private-db/schema.ts';
 import { renderOutreach, unfilledSlots } from '../outreach-message.ts';
 import { stubHousehold } from '../test-household.ts';
-import { commandOutreach, listOutreach, saveOutreachSettings } from './outreach.ts';
-import { LinkedinProfileSchema } from './outreach-protocol.ts';
+import { pollWorker } from './leases.ts';
+import { commandOutreach, listOutreach, recordOutreachResult, saveOutreachSettings } from './outreach.ts';
+import { LinkedinProfileSchema, OUTREACH_DAILY_CAP } from './outreach-protocol.ts';
+import type { OutreachResult } from './worker-protocol.ts';
 import { createPairing, pairWorker } from './pairing.ts';
 import { createEmptyPolicy } from './policy.ts';
 import { createRun } from './runs.ts';
@@ -17,7 +19,7 @@ import { hashValue } from './stores.ts';
 import { enqueueApplication } from './test-enqueue.ts';
 
 vi.mock('server-only', () => ({}));
-let db: PrivateDb, dir: string, now: number, runId: string, workerId: string;
+let db: PrivateDb, dir: string, now: number, runId: string, workerId: string, token: string;
 const options = { now: () => now };
 const recruiter = (handle: string) => ({ name: 'Sam Fixture', title: 'University Recruiter', url: `https://www.linkedin.com/in/${handle}` });
 
@@ -44,8 +46,9 @@ beforeEach(async () => {
     acceptedPolicyVersion: 1, acceptedPolicyHash: hash, acceptedAt: now });
   const grant = await createPairing(db, 'alice', { expectedRevision: 0, requestId: randomUUID(), label: 'Synthetic worker' }, options);
   workerId = randomUUID();
+  token = randomBytes(32).toString('base64url');
   await pairWorker(db, { protocolVersion: 1, workerId, requestId: randomUUID(), grant: grant.grant,
-    workerToken: randomBytes(32).toString('base64url'), workerVersion: '0.1.0', capabilities: ['control-v1'] }, options);
+    workerToken: token, workerVersion: '0.1.0', capabilities: ['control-v1'] }, options);
   runId = (await createRun(db, 'alice', { expectedRevision: 0, requestId: randomUUID(), workerId }, options)).id;
 });
 afterEach(() => { db?.$client.close(); rmSync(dir, { recursive: true, force: true }); vi.unstubAllGlobals(); });
@@ -112,6 +115,102 @@ describe('outreach queue', () => {
     await expect(commandOutreach(db, 'alice', other.id, { action: 'reopen' }, options)).rejects.toMatchObject({ status: 409 });
     expect(await commandOutreach(db, 'alice', fixture.id, { action: 'reopen' }, options)).toMatchObject({ state: 'draft' });
     await expect(commandOutreach(db, 'bob', fixture.id, { action: 'skip' }, options)).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('outreach sending', () => {
+  const poll = (outreach = true) => pollWorker(db, token, { protocolVersion: 1, ...(outreach ? { outreach: true as const } : {}) }, options);
+  const report = (id: string, result: object) => recordOutreachResult(db, token, id, { protocolVersion: 1, ...result } as OutreachResult, options);
+  const row = async (id: string) => (await listOutreach(db, 'alice', options)).items.find((item) => item.id === id);
+  const approve = (id: string, handle: string) =>
+    commandOutreach(db, 'alice', id, { action: 'approve', recruiter: recruiter(handle), subject: 'Hello', body: `Hi ${handle}.` }, options);
+  /** A message for a new employer, approved a second later for a recruiter of its own. */
+  async function approved(company: string) {
+    now += 1000;
+    await submitted(company, 'Software Engineer Intern');
+    const { id } = (await listOutreach(db, 'alice', options)).items.find((item) => item.company === company)!;
+    await approve(id, company.toLowerCase().replace(/\W+/g, '-'));
+    return id;
+  }
+  beforeEach(async () => { await saveOutreachSettings(db, 'alice', { template: 'Hi {Name}' }, options); });
+
+  it('hands an approved message to an asking worker once, and one at a time', async () => {
+    const first = await approved('Fixture Co'), approvedAt = now;
+    const second = await approved('Other Co');
+    // A worker that is not signed in to LinkedIn never asks, and gets the response it has always parsed.
+    expect(await poll(false)).not.toHaveProperty('outreach');
+    now += 1000;
+    expect(await poll()).toMatchObject({ lease: null, outreach: { id: first, name: 'Sam Fixture',
+      profileUrl: 'https://www.linkedin.com/in/fixture-co', subject: 'Hello', body: 'Hi fixture-co.', approvedAt } });
+    expect(await row(first)).toMatchObject({ state: 'sending' });
+    // While it is in flight nothing else is handed over, and the applicant can no longer take it back.
+    expect(await poll()).not.toHaveProperty('outreach');
+    await expect(commandOutreach(db, 'alice', first, { action: 'reopen' }, options)).rejects.toMatchObject({ status: 409 });
+    const threadUrl = 'https://www.linkedin.com/messaging/thread/2-fixture/';
+    expect(await report(first, { outcome: 'sent', threadUrl })).toEqual({ state: 'sent' });
+    expect(await row(first)).toMatchObject({ state: 'sent', reason: 'sent_by_worker', sentAt: now, threadUrl });
+    // A repeated or contradicting report changes nothing.
+    expect(await report(first, { outcome: 'unknown' })).toEqual({ state: 'sent' });
+    expect((await poll()).outreach?.id).toBe(second);
+    await expect(report(randomUUID(), { outcome: 'unknown' })).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('records why nothing was sent, and never sends an unconfirmed message a second time unasked', async () => {
+    const [expired, threaded, signedOut, unconfirmed] = [await approved('A Co'), await approved('B Co'), await approved('C Co'), await approved('D Co')];
+    const claim = async (id: string) => expect((await poll()).outreach?.id).toBe(id);
+    await claim(expired);
+    expect(await report(expired, { outcome: 'not_sent', reasonCode: 'approval_expired' })).toEqual({ state: 'draft' });
+    expect(await row(expired)).toMatchObject({ state: 'draft', reason: 'approval_expired' });
+    await claim(threaded);
+    expect(await report(threaded, { outcome: 'not_sent', reasonCode: 'prior_thread' })).toEqual({ state: 'skipped' });
+    // LinkedIn showed a conversation with that person, so no other message may go to them either.
+    await expect(approve(expired, 'b-co')).rejects.toMatchObject({ status: 409, code: 'ALREADY_MESSAGED' });
+    await claim(signedOut);
+    expect(await report(signedOut, { outcome: 'not_sent', reasonCode: 'login_required' })).toEqual({ state: 'failed' });
+    expect(await approve(signedOut, 'c-co')).toMatchObject({ state: 'approved', reason: null });
+    await commandOutreach(db, 'alice', signedOut, { action: 'skip' }, options);
+    await claim(unconfirmed);
+    expect(await report(unconfirmed, { outcome: 'unknown' })).toEqual({ state: 'failed' });
+    expect(await row(unconfirmed)).toMatchObject({ state: 'failed', reason: 'send_unconfirmed' });
+    await expect(approve(unconfirmed, 'd-co')).rejects.toMatchObject({ status: 409, code: 'CHECK_LINKEDIN' });
+    await expect(approve(expired, 'd-co')).rejects.toMatchObject({ status: 409, code: 'ALREADY_MESSAGED' });
+    // The worker's confirmation still lands when it arrives late.
+    expect(await report(unconfirmed, { outcome: 'sent', threadUrl: null })).toEqual({ state: 'sent' });
+  });
+
+  it('treats a message the worker never reported on as possibly sent, and stops at the daily cap', async () => {
+    const lost = await approved('Lost Co'), next = await approved('Next Co');
+    expect((await poll()).outreach?.id).toBe(lost);
+    now += 16 * 60_000;
+    // The next poll settles the lost one and moves on.
+    expect((await poll()).outreach?.id).toBe(next);
+    expect(await row(lost)).toMatchObject({ state: 'failed', reason: 'send_unconfirmed' });
+    await report(next, { outcome: 'sent', threadUrl: null });
+    for (let sent = 2; sent < OUTREACH_DAILY_CAP; sent++) {
+      const id = await approved(`Co ${sent}`);
+      expect((await poll()).outreach?.id).toBe(id);
+      await report(id, { outcome: 'sent', threadUrl: null });
+    }
+    const over = await approved('Over Co');
+    expect(await poll()).not.toHaveProperty('outreach');
+    expect(await listOutreach(db, 'alice', options)).toMatchObject({ sentToday: OUTREACH_DAILY_CAP });
+    expect(await row(over)).toMatchObject({ state: 'approved' });
+    now += 24 * 60 * 60_000;
+    expect((await poll()).outreach?.id).toBe(over);
+  });
+
+  it('shows an unreported send as unconfirmed even when the worker never polls again', async () => {
+    const id = await approved('Quiet Co');
+    await poll();
+    now += 16 * 60_000;
+    expect(await listOutreach(db, 'alice', options)).toMatchObject({ sentToday: 1, items: [{ id, state: 'failed', reason: 'send_unconfirmed' }] });
+  });
+
+  it('hands a message over alongside a read-only reconcile lease', async () => {
+    const id = await approved('Fixture Co');
+    // A submission that was never confirmed: its worker gets this lease on every poll, and would otherwise never be idle.
+    await submitted('Unknown Co', 'Data Intern', 'submission_unknown');
+    expect(await poll()).toMatchObject({ lease: { mode: 'reconcile' }, outreach: { id } });
   });
 });
 

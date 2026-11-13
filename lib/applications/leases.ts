@@ -6,6 +6,7 @@ import { insertRun } from './runs.ts';
 import { dailyStartInstant } from './schedule.ts';
 import { isTerminalState, isWaitingState, SAFE_STAGES, type SafeStage } from './state.ts';
 import { claimableNow, discoverWorkerRuns, discoveryClaimAllowed, type CorpusProvider } from './discovery.ts';
+import { claimOutreach } from './outreach.ts';
 import {
   PollRequestSchema, HeartbeatRequestSchema, LEASE_MS,
   type PollRequest, type HeartbeatRequest, type PollResponse, type LeaseRef,
@@ -85,12 +86,16 @@ export async function pollWorker(db: PrivateDb, token: string, input: PollReques
           state, revision: app.revision + 1, fence: app.fence + 1, leaseUntil: now + LEASE_MS, leaseCheckedAt: now,
           startedAt: app.startedAt ?? now,
         }).where(and(appScope(worker.ownerId, app.id), eq(applications.revision, app.revision), eq(applications.fence, app.fence))).returning());
-        return { ...clockResponse(now), lease: await leaseOf(tx, claimed) };
+        // A reconcile lease is read-only and released at once, so the worker is free for a recruiter message too.
+        // (A worker gets one on every poll for as long as a submission stays unconfirmed.)
+        const task = input.outreach && claimed.state === 'submission_unknown' ? await claimOutreach(tx, worker.ownerId, now) : null;
+        return { ...clockResponse(now), lease: await leaseOf(tx, claimed), ...(task ? { outreach: task } : {}) };
       }
       if (candidates.length < 100) break;
       cursor = candidates[candidates.length - 1];
     }
-    return { ...clockResponse(now), lease: null };
+    const task = input.outreach ? await claimOutreach(tx, worker.ownerId, now) : null;
+    return { ...clockResponse(now), lease: null, ...(task ? { outreach: task } : {}) };
   });
 }
 export async function heartbeatWorker(

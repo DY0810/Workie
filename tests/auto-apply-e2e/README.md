@@ -45,6 +45,9 @@ Neither folder is deleted on teardown, so you can inspect it afterwards; delete 
 - **f.** Presses Apply on role 1, enters the fixture's emailed code `ABCD1234` in the Live card, and the role lands in
   **Applied** with the changed answers under "What you sent".
 - **g.** Answers role 2's essay; it waits for approval with the reused choice filled. It is never submitted.
+- **h.** The Outreach tab holds one recruiter message for Fixture Co. The worker is signed in to the LinkedIn stand-in
+  (`worker linkedin`), the message is approved, the worker rehearses it (nothing typed), it is approved again, and the
+  worker sends it.
 
 Screenshots of the key moments go to `logs/auto-apply-e2e/screens/` (overwritten each run).
 
@@ -56,6 +59,7 @@ Screenshots of the key moments go to `logs/auto-apply-e2e/screens/` (overwritten
 | Catalog DB | Real SQLite, migrated fresh; Fixture Co "Software Engineering Intern" 4000001 at start, 4000002 added mid-run |
 | Private DB, document storage | Real local SQLite and a private local directory |
 | Worker | Real `worker/main.ts` pair/start, real Playwright Chrome (headless by default) |
+| LinkedIn | Faked by `worker/linkedin-fixture.mjs`, a loopback stand-in for the profile and message pages that signs in by itself. Nothing reaches linkedin.com |
 | Keychain, grant prompt | Faked by `worker-preload.mjs`: a 0600 JSON file instead of the OS keychain, the grant on stdin instead of a TTY |
 | Tailoring provider | Fake Ollama in `stack.mjs`: the capability check picks the first label; tailor drops the last word of one resume line. The worker's real document runtime makes and verifies the tailored DOCX |
 | Greenhouse form | The worker's own fixture (`worker/ats/greenhouse-fixture.ts`), served by Playwright routing; no request reaches Greenhouse |

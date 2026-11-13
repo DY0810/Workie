@@ -17,6 +17,7 @@ import { dirname, join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { seedRole } from './catalog.mjs';
+import { linkedinStandIn } from '../../worker/linkedin-fixture.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const args = process.argv.slice(2);
@@ -57,7 +58,7 @@ function killAll(signal = 'SIGTERM') {
     }
   } catch { /* none started */ }
 }
-let fake;
+let fake, linkedin;
 let stopping = false;
 async function stop(code) {
   if (stopping) return;
@@ -66,6 +67,7 @@ async function stop(code) {
   await delay(2000);
   killAll('SIGKILL');
   fake?.close();
+  linkedin?.close();
   process.exit(code);
 }
 process.on('SIGINT', () => void stop(130));
@@ -138,6 +140,8 @@ try {
   }
 
   fake = await startFakeOllama(ollamaPort);
+  // The worker's recruiter messages go to a local stand-in, never to linkedin.com.
+  linkedin = await linkedinStandIn({ session: true });
   launch('server', node, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], serverEnv);
   for (let attempt = 0; ; attempt++) {
     if (await fetch(`${baseURL}/sign-in`).then((r) => r.status < 500, () => false)) break;
@@ -149,7 +153,7 @@ try {
     baseURL, out, outside, passcode, catalog, dyEmail: serverEnv.WORKIE_HOUSEHOLD_DY_EMAIL,
     ollama: { endpoint: `http://127.0.0.1:${ollamaPort}/api/chat`, model: 'e2e-fake' },
     worker: { PATH, HOME: process.env.HOME, WORKIE_WORKER_ORIGIN: baseURL, WORKIE_WORKER_DIRECTORY: join(outside, 'worker'),
-      WORKIE_WORKER_ALLOW_LOOPBACK: '1', WORKIE_DB: join(out, 'worker-must-not-create.db') },
+      WORKIE_WORKER_ALLOW_LOOPBACK: '1', WORKIE_WORKER_LINKEDIN_ORIGIN: linkedin.origin, WORKIE_DB: join(out, 'worker-must-not-create.db') },
   };
   writeFileSync(join(out, 'state.json'), JSON.stringify(state, null, 2), { mode: 0o600 });
   console.log(`Stack up at ${baseURL}\nState: ${join(out, 'state.json')}`);

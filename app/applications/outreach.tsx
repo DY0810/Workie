@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { BadgeTone } from '../../lib/applications/badges';
-import { OutreachListSchema, OutreachPersonSchema, type OutreachCommand, type OutreachItem, type OutreachList } from '../../lib/applications/outreach-protocol';
+import { OUTREACH_DAILY_CAP, OutreachListSchema, OutreachPersonSchema, type OutreachCommand, type OutreachItem, type OutreachList } from '../../lib/applications/outreach-protocol';
 import { renderOutreach, unfilledSlots } from '../../lib/outreach-message';
 import { linkedinSearches } from '../../lib/recruiters';
 import { privateJson, PrivateRequestError } from '../profile/api';
@@ -17,6 +17,23 @@ const BADGES: Record<OutreachItem['state'], { tone: BadgeTone; label: string }> 
   skipped: { tone: 'skipped', label: 'skipped' },
 };
 const ORDER = Object.keys(BADGES);
+// What the worker reported, in the applicant's terms, with what to do next.
+const REASONS: Record<string, string> = {
+  dry_run: 'Test run passed: Workie reached the message box for this person and typed nothing. Approve again to send it.',
+  approval_expired: 'Approved on an earlier day and not sent, so it came back in case the text says "today". Check it and approve again.',
+  prior_thread: 'LinkedIn already shows a conversation with this person, so nothing was sent.',
+  login_required: 'The worker is signed out of LinkedIn. On its computer run "npm run worker -- linkedin", sign in, then approve again.',
+  profile_moved: 'That profile link now leads somewhere else. Open it, copy the link from the address bar, then approve again.',
+  recipient_mismatch: 'The name on that LinkedIn profile does not match the name here, so nothing was sent. Check both.',
+  compose_unavailable: 'LinkedIn offers no message box for this person (not an open profile, no credit left, or already written to).',
+  thread_not_loaded: 'LinkedIn did not finish loading the conversation, so nothing was sent. Approve again to retry.',
+  body_mismatch: 'LinkedIn\'s message box changed the text, so nothing was sent.',
+  send_disabled: 'LinkedIn kept its Send button off, so nothing was sent.',
+  page_error: 'LinkedIn did not load as expected, so nothing was sent. Approve again to retry.',
+  timeout: 'LinkedIn took too long, so nothing was sent. Approve again to retry.',
+  browser_unavailable: 'The worker could not open its LinkedIn window, so nothing was sent. Approve again to retry.',
+  send_unconfirmed: 'Workie pressed Send but could not confirm the message went. Check LinkedIn: mark it sent if it is there, or reopen it if not.',
+};
 const day = (ms: number) => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 /** The server's own words for a refused message ("Sam was already messaged"); the shared helper swaps them for profile copy. */
 const said = (error: unknown) => {
@@ -39,7 +56,8 @@ function Template({ ownerId, template, onSaved }: { ownerId: string; template: s
   </div>;
   return template === null ? <>
     <p className={styles.message}>After Workie submits an application, it drafts one LinkedIn message to a recruiter at that employer.
-      You choose the recruiter, send it on LinkedIn, and mark it sent here. Only applications submitted after you turn this on get one.</p>
+      You choose the recruiter and approve the message, and your worker sends it from your LinkedIn account; or you send it yourself
+      and mark it sent here. Only applications submitted after you turn this on get one.</p>
     {form}
   </> : <details><summary className={styles.muted}>Message template</summary>{form}</details>;
 }
@@ -53,6 +71,8 @@ function Message({ item, template, now, ownerId, onDone }: { item: OutreachItem;
   // The applicant's own wording, once they type in the message; until then it follows the template.
   const [edited, setEdited] = useState(item.body);
   const editable = item.state === 'draft' || item.state === 'failed';
+  // It may already be in the recruiter's inbox: no second send without a look at LinkedIn and a reopen.
+  const unconfirmed = item.reason === 'send_unconfirmed';
   // Slots still in braces fill in as their values arrive, in the template and in edited text alike.
   const text = renderOutreach(edited ?? template, { recruiter: name || null, company: item.company, roles: item.roles, overlap: overlap || null, now });
   const missing = unfilledSlots(`${subject} ${text}`);
@@ -64,7 +84,7 @@ function Message({ item, template, now, ownerId, onDone }: { item: OutreachItem;
     if (!parsed.success) throw new Error('Enter the recruiter\'s name and their LinkedIn profile link (linkedin.com/in/...).');
     return parsed.data;
   };
-  const finish = (action: 'mark-sent') => async () => {
+  const finish = (action: 'approve' | 'mark-sent') => async () => {
     const recruiter = person();
     if (!text.trim()) throw new Error('Write the message first.');
     if (missing.length) throw new Error(`Fill in ${missing.join(', ')} first.`);
@@ -81,10 +101,13 @@ function Message({ item, template, now, ownerId, onDone }: { item: OutreachItem;
       {item.sentAt && `, sent ${day(item.sentAt)}`}{item.reason === 'sent_by_applicant' && ' by you'}
       {item.threadUrl && <> · <a href={item.threadUrl} target="_blank" rel="noreferrer">Open thread</a></>}
     </span>}
+    {item.state === 'skipped' && item.reason && REASONS[item.reason] && <span className={styles.muted}>{REASONS[item.reason]}</span>}
+    {item.state === 'approved' && <span className={styles.muted}>Your worker sends it when it is between applications.</span>}
     {!editable && item.body && <details><summary className={styles.muted}>Message</summary>
       <pre className={styles.preview}>{item.subject ? `${item.subject}\n\n` : ''}{item.body}</pre></details>}
     {editable && <>
-      {item.state === 'failed' && <p className={styles.issue}>Workie could not send this{item.reason && ` (${item.reason.replaceAll('_', ' ')})`}.</p>}
+      {item.state === 'failed' && <p className={styles.issue}>{REASONS[item.reason ?? ''] ?? 'Workie could not send this.'}</p>}
+      {item.state === 'draft' && item.reason && REASONS[item.reason] && <p className={styles.message}>{REASONS[item.reason]}</p>}
       <div className={styles.reviewEdit}>
         <span className={styles.muted}>Find someone who works there now:{linkedinSearches(item.company).map((search, index) =>
           <span key={search.url}>{index ? ' · ' : ' '}<a href={search.url} target="_blank" rel="noreferrer">{search.label}</a></span>)}</span>
@@ -104,8 +127,12 @@ function Message({ item, template, now, ownerId, onDone }: { item: OutreachItem;
         {edited !== null && <button className={styles.button} type="button" onClick={() => setEdited(null)}>Reset to template</button>}
         <Command label="Skip" busyLabel="Skipping..." run={() => send({ action: 'skip' })} onDone={onDone} />
         <Command label="Save" busyLabel="Saving..." run={save} onDone={onDone} />
-        <Command label="Mark sent" busyLabel="Saving..." primary confirm={`Record this as sent to ${name.trim() || 'the recruiter'} by you on LinkedIn?`}
+        <Command label="Mark sent" busyLabel="Saving..." confirm={`Record this as sent to ${name.trim() || 'the recruiter'} by you on LinkedIn?`}
           run={finish('mark-sent')} onDone={onDone} />
+        {unconfirmed ? <Command label="Reopen" busyLabel="Reopening..." run={() => send({ action: 'reopen' })} onDone={onDone} />
+          : <Command label="Approve and send" busyLabel="Approving..." primary
+            confirm={`Send this to ${name.trim() || 'the recruiter'} from your LinkedIn account? It cannot be unsent.`}
+            run={finish('approve')} onDone={onDone} />}
       </>}
       {item.state === 'approved' && <Command label="Take back" busyLabel="Taking back..." run={() => send({ action: 'reopen' })} onDone={onDone} />}
       {item.state === 'skipped' && <Command label="Reopen" busyLabel="Reopening..." run={() => send({ action: 'reopen' })} onDone={onDone} />}
@@ -125,6 +152,13 @@ export default function Outreach({ ownerId }: { ownerId: string }) {
     } catch (e) { setError(e instanceof PrivateRequestError ? e.message : 'Outreach is unavailable. Retry.'); }
   }, [ownerId]);
   useEffect(() => { void load(); }, [load]);
+  // A message on its way to the worker settles within a poll or two, so the tab follows it.
+  const pending = view?.list.items.some((item) => item.state === 'approved' || item.state === 'sending') ?? false;
+  useEffect(() => {
+    if (!pending) return;
+    const timer = setInterval(() => void load(), 15_000);
+    return () => clearInterval(timer);
+  }, [pending, load]);
   const reload = () => void load();
 
   if (!view) return <p role={error ? 'alert' : 'status'} className={`${styles.message} ${styles.muted}`}>{error || 'Loading messages...'}</p>;
@@ -134,6 +168,10 @@ export default function Outreach({ ownerId }: { ownerId: string }) {
     {error && <p role="alert" className={styles.message}>{error}</p>}
     <Template key={list.template === null ? 'off' : 'on'} ownerId={ownerId} template={list.template} onSaved={reload} />
     {list.template !== null && <>
+      <p className={styles.muted}>Workie sends at most {OUTREACH_DAILY_CAP} approved messages in any 24 hours ({list.sentToday} so far), one at a time.
+        Your worker has to be signed in to LinkedIn first: on its computer, set up as for its other commands, run{' '}
+        <code>npm run worker -- linkedin</code> and sign in.
+        The first message after that is a test run that types nothing.</p>
       {!items.length ? <p className={`${styles.message} ${styles.muted}`}>No messages yet. One appears here after Workie submits an application.</p> :
         <ul className={styles.cards} aria-label="Outreach">
           {items.map((item) => <Message key={item.id} item={item} template={list.template!} now={at} ownerId={ownerId} onDone={reload} />)}

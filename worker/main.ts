@@ -10,6 +10,7 @@ import { PairingMetadataSchema, WorkerCredentialSchema, pairWorker, sameScope, S
 import { readMaskedGrant, readMaskedSecret } from "./input.ts";
 import { runWorker, type WorkerSetup } from "./runtime.ts";
 import { openApplicationTab, type BrowserRuntime } from "./browser.ts";
+import { linkedinOutreach, linkedinSignIn } from "./linkedin.ts";
 import { liveView, type ReviewField } from "./live.ts";
 import { greenhouse } from "./ats/greenhouse.ts";
 import { lever } from "./ats/lever.ts";
@@ -447,8 +448,8 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
 export async function main(args = process.argv.slice(2)) {
   if (process.versions.node.split(".")[0] !== "22") throw new Error("NODE_22_REQUIRED");
   if (!["darwin", "linux"].includes(process.platform)) throw new Error("UNSUPPORTED_PLATFORM");
-  if (args.length !== 1 || !["pair", "start", "status", "stop", "recover", "set-provider-key"].includes(args[0])) {
-    process.stdout.write("Usage: npm run worker -- pair|start|status|stop|recover|set-provider-key\n");
+  if (args.length !== 1 || !["pair", "start", "status", "stop", "recover", "set-provider-key", "linkedin"].includes(args[0])) {
+    process.stdout.write("Usage: npm run worker -- pair|start|status|stop|recover|set-provider-key|linkedin\n");
     return;
   }
   const allowLoopback = process.env.WORKIE_WORKER_ALLOW_LOOPBACK === "1";
@@ -522,6 +523,15 @@ export async function main(args = process.argv.slice(2)) {
       } finally { await unlock(); }
       return;
     }
+    // A test stack points the worker at a local stand-in for LinkedIn; anything but a loopback address is ignored.
+    const linkedinOrigin = allowLoopback && /^http:\/\/127\.0\.0\.1:\d{2,5}$/.test(process.env.WORKIE_WORKER_LINKEDIN_ORIGIN ?? "")
+      ? process.env.WORKIE_WORKER_LINKEDIN_ORIGIN : undefined;
+    if (args[0] === "linkedin") {
+      // The applicant signs in to LinkedIn in the worker's own window; the worker never holds their password.
+      const signedIn = await linkedinSignIn({ store, directory, signal: controller.signal, origin: linkedinOrigin, headless: !!linkedinOrigin });
+      process.stdout.write(JSON.stringify({ ...scope, status: signedIn ? "linkedin-signed-in" : "linkedin-not-signed-in" }) + "\n");
+      return;
+    }
     if (args[0] === "set-provider-key") {
       const configuredProviderId = process.env.WORKIE_PROVIDER_ID;
       const providerId = configuredProviderId === BYOK_PROVIDER_ID || configuredProviderId === OMNIROUTE_PROVIDER_ID ? configuredProviderId : null;
@@ -567,6 +577,8 @@ export async function main(args = process.argv.slice(2)) {
       return { generate, dispatch };
     };
     await runWorker({ scope, store, transport, configure: setup,
+      outreach: linkedinOutreach({ store, directory, origin: linkedinOrigin, headless: !!linkedinOrigin,
+        log: entry => process.stdout.write(JSON.stringify({ at: new Date().toISOString(), ...entry }) + "\n") }),
       signal: controller.signal, status: status => process.stdout.write(JSON.stringify({ at: new Date().toISOString(), status }) + "\n") });
   } finally {
     process.removeListener("SIGINT", stop);

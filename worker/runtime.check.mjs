@@ -489,3 +489,43 @@ test("a fatal error past a submission intent leaves the code window open until t
   typed();
   assert.equal(await outcome, "CLOCK_UNSAFE");
 });
+
+test("a recruiter message is taken with no application to work on, and its outcome is kept until the server has it", async () => {
+  const s = scope(), store = await storeFor(s);
+  const message = () => ({ id: randomUUID(), name: "Sam Fixture", profileUrl: "https://www.linkedin.com/in/sam-fixture",
+    subject: "", body: "Hi Sam.", approvedAt: Date.now() });
+  const run = async ({ response, send, answer, enabled = true, posts = 1 }) => {
+    const controller = new AbortController(), seen = { asked: [], posted: [], dispatches: 0, events: 0 };
+    const stuck = setTimeout(() => controller.abort(), 3000), done = () => setTimeout(() => controller.abort(), 20);
+    await runWorker({ scope: s, store, signal: controller.signal,
+      transport: { poll: async (_signal, asks) => { seen.asked.push(asks); if (!response.outreach) done(); return response; },
+        heartbeat: async () => clockResponse(), event: async () => { seen.events++; },
+        outreachResult: async (id, input) => { seen.posted.push([id, input.outcome]); if (seen.posted.length === posts) done(); return answer(); } },
+      outreach: { enabled: async () => enabled, send },
+      dispatch: async () => { seen.dispatches++; } });
+    clearTimeout(stuck);
+    return seen;
+  };
+  // Send was pressed, then the window died and Workie's server was down: "may have been sent" stays on disk.
+  const first = message();
+  let seen = await run({ response: { ...clockResponse(), outreach: first },
+    send: async (_task, beforeClick) => { await beforeClick(); throw new Error("window closed"); },
+    answer: () => { throw new TransportError("NETWORK_UNAVAILABLE"); } });
+  assert.deepEqual(seen.posted, [[first.id, "unknown"]]);
+  assert.deepEqual(await store.read("outreach-result"), { id: first.id, result: { protocolVersion: 1, outcome: "unknown" } });
+  // The next start reports it before anything else. A worker stuck on an unconfirmed submission still takes a message.
+  const second = message();
+  seen = await run({ response: { ...clockResponse({ ...assignment(s), state: "submission_unknown", mode: "reconcile" }), outreach: second },
+    send: async () => ({ outcome: "sent", threadUrl: null }), answer: () => ({ state: "sent" }), posts: 2 });
+  assert.deepEqual(seen.posted, [[first.id, "unknown"], [second.id, "sent"]]);
+  assert.deepEqual([seen.asked, seen.dispatches, seen.events], [[true], 0, 0]);
+  assert.equal(await store.read("outreach-result"), null);
+  // A failure before Send is the message's own, and the server refusing the outcome for good drops it.
+  seen = await run({ response: { ...clockResponse(), outreach: message() },
+    send: async () => { throw new Error("no window"); }, answer: () => { throw new TransportError("HTTP_409", 409, "OUTREACH_SETTLED"); } });
+  assert.deepEqual(seen.posted.map(([, outcome]) => outcome), ["not_sent"]);
+  assert.equal(await store.read("outreach-result"), null);
+  // Not signed in to LinkedIn: the poll does not ask.
+  seen = await run({ response: clockResponse(), enabled: false, send: async () => assert.fail("sent"), answer: () => assert.fail("posted") });
+  assert.deepEqual([seen.asked, seen.posted], [[false], []]);
+});

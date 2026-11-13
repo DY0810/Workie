@@ -11,9 +11,9 @@ import {
   HeartbeatRequestSchema, EventRequestSchema, EventResponseSchema, WORKER_PROTOCOL_VERSION, POLL_TIMEOUT_MS,
   SubmissionIntentSchema, SubmissionIntentResponseSchema, ReceiptCommandSchema, ReceiptResponseSchema,
   SubmittedLetterSchema, SubmittedLetterAckSchema, LiveFrameSchema, LiveFrameAckSchema,
-  VerificationCodeTakeSchema, VerificationCodeResponseSchema,
+  VerificationCodeTakeSchema, VerificationCodeResponseSchema, OutreachResultSchema, OutreachResultAckSchema,
 } from "../lib/applications/worker-protocol.ts";
-import type { PairRequest, HeartbeatRequest, EventRequest } from "../lib/applications/worker-protocol.ts";
+import type { PairRequest, HeartbeatRequest, EventRequest, OutreachResult } from "../lib/applications/worker-protocol.ts";
 import {
   ProviderConfigRequestSchema, ProviderConfigSchema,
 } from "../lib/applications/provider-protocol.ts";
@@ -125,9 +125,15 @@ export function workerTransport(options: {
   return {
     pair: (input: PairRequest, signal?: AbortSignal) =>
       post("/api/worker/pair", PairRequestSchema.parse(input), PairResponseSchema, signal),
-    poll: (signal?: AbortSignal) =>
-      post("/api/worker/poll", PollRequestSchema.parse(version), PollResponseSchema, signal, false,
+    // `outreach`: this worker is signed in to LinkedIn and will take one approved recruiter message.
+    poll: (signal?: AbortSignal, outreach = false) =>
+      post("/api/worker/poll", PollRequestSchema.parse(outreach ? { ...version, outreach: true } : version), PollResponseSchema, signal, false,
         options.timeoutMs ?? POLL_TIMEOUT_MS),
+    // Idempotent on the server (a settled message only acknowledges), so it retries like a checkpoint.
+    outreachResult: (id: string, input: OutreachResult, signal?: AbortSignal) => {
+      if (!z.uuid().safeParse(id).success) throw new TransportError("INVALID_OUTREACH");
+      return post(`/api/worker/outreach/${id}/result`, OutreachResultSchema.parse(input), OutreachResultAckSchema, signal, true);
+    },
     heartbeat: (lease: HeartbeatRequest["lease"], signal?: AbortSignal) =>
       post("/api/worker/heartbeat", HeartbeatRequestSchema.parse({ ...version, lease }), PollResponseSchema, signal),
     providerConfig: (signal?: AbortSignal) =>

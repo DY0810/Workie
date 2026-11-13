@@ -1,12 +1,13 @@
 import 'server-only';
-import { and, desc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, gte, inArray, lte, ne, sql } from 'drizzle-orm';
 import type { PrivateDb } from '../private-db/index.ts';
 import { applications, applicationSubmissions, outreach, outreachSettings } from '../private-db/schema.ts';
 import { unfilledSlots } from '../outreach-message.ts';
 import { savedLetter } from './materials.ts';
-import type { OutreachCommand, OutreachItem, OutreachList } from './outreach-protocol.ts';
+import { OUTREACH_DAILY_CAP, type OutreachCommand, type OutreachItem, type OutreachList, type OutreachTask } from './outreach-protocol.ts';
+import type { OutreachResult } from './worker-protocol.ts';
 import { PrivateInputError } from './private-http.ts';
-import { nowAt, one, randomUUID, workerTransaction, type WorkerOptions } from './worker-store.ts';
+import { fail, nowAt, one, randomUUID, withWorker, workerTransaction, type WorkerOptions, type WorkerTx } from './worker-store.ts';
 
 type Row = typeof outreach.$inferSelect;
 /** The same key discovery gives an employer, so "Skydio" and "skydio " are one company. */
@@ -16,6 +17,18 @@ const item = (row: Row): OutreachItem => ({
   overlap: row.overlap, subject: row.subject, body: row.body, state: row.state, reason: row.reason,
   createdAt: row.createdAt, sentAt: row.sentAt, threadUrl: row.threadUrl,
 });
+
+// The worker reports within minutes. Past this, a message it took is treated as possibly sent.
+const SENDING_STALE_MS = 15 * 60_000;
+const DAY_MS = 24 * 60 * 60_000;
+/** Counts toward the daily cap: what the worker sent, or may have sent, in the last 24 hours. */
+const sentByWorker = (row: Row, now: number) => row.updatedAt > now - DAY_MS &&
+  ((row.state === 'sent' && row.reason === 'sent_by_worker') || (row.state === 'failed' && row.reason === 'send_unconfirmed'));
+const stale = (row: Row, now: number) => row.state === 'sending' && row.updatedAt <= now - SENDING_STALE_MS;
+/** A message the worker took and never reported on may have gone out: it fails as unconfirmed and is not sent again unasked. */
+const expireSending = (tx: Pick<PrivateDb, 'update'>, ownerId: string, now: number) =>
+  tx.update(outreach).set({ state: 'failed', reason: 'send_unconfirmed', updatedAt: now })
+    .where(and(eq(outreach.ownerId, ownerId), eq(outreach.state, 'sending'), lte(outreach.updatedAt, now - SENDING_STALE_MS)));
 
 type Reader = Pick<PrivateDb, 'select'>;
 /** The queue as stored, plus the submitted applications that still need a draft (`fresh`, oldest first). */
@@ -41,8 +54,9 @@ async function read(db: Reader, ownerId: string) {
 export async function listOutreach(db: PrivateDb, ownerId: string, options: WorkerOptions = {}): Promise<OutreachList> {
   const now = nowAt(options);
   let state = await read(db, ownerId);
-  // Only a new submission writes, so opening the tab otherwise takes no write lock.
-  if (state.fresh.length) state = await workerTransaction(db, async (tx) => {
+  // Only a new submission (or a send the worker never reported) writes, so opening the tab otherwise takes no write lock.
+  if (state.fresh.length || state.rows.some((row) => stale(row, now))) state = await workerTransaction(db, async (tx) => {
+    await expireSending(tx, ownerId, now);
     const { rows, fresh } = await read(tx, ownerId);
     const byCompany = new Map(rows.map((row) => [row.companyKey, row]));
     for (const application of fresh) {
@@ -61,7 +75,50 @@ export async function listOutreach(db: PrivateDb, ownerId: string, options: Work
     }
     return read(tx, ownerId);
   });
-  return { ownerId, template: state.settings?.template ?? null, enabledAt: state.settings?.enabledAt ?? null, items: state.rows.map(item) };
+  return { ownerId, template: state.settings?.template ?? null, enabledAt: state.settings?.enabledAt ?? null,
+    sentToday: state.rows.filter((row) => sentByWorker(row, now)).length, items: state.rows.map(item) };
+}
+
+/**
+ * Inside the worker's poll: hands over the oldest approved message, one in flight per applicant and at most
+ * OUTREACH_DAILY_CAP a day. It becomes `sending` here, before the worker opens LinkedIn, so it is never handed over twice.
+ */
+export async function claimOutreach(tx: WorkerTx, ownerId: string, now: number): Promise<OutreachTask | null> {
+  // The one read every asking poll makes: with nothing approved or in flight it ends here.
+  const waiting = await tx.select().from(outreach)
+    .where(and(eq(outreach.ownerId, ownerId), inArray(outreach.state, ['approved', 'sending']))).orderBy(outreach.updatedAt);
+  if (!waiting.length) return null;
+  if (waiting.some((row) => row.state === 'sending')) {
+    if (waiting.some((row) => row.state === 'sending' && !stale(row, now))) return null;
+    await expireSending(tx, ownerId, now);
+  }
+  const next = waiting.find((row) => row.state === 'approved');
+  if (!next) return null;
+  const recent = await tx.select().from(outreach).where(and(eq(outreach.ownerId, ownerId), gt(outreach.updatedAt, now - DAY_MS)));
+  if (recent.filter((row) => sentByWorker(row, now)).length >= OUTREACH_DAILY_CAP) return null;
+  one(await tx.update(outreach).set({ state: 'sending', updatedAt: now })
+    .where(and(eq(outreach.ownerId, ownerId), eq(outreach.id, next.id), eq(outreach.state, 'approved'))).returning());
+  // `updatedAt` was the approval until this claim replaced it.
+  return { id: next.id, name: next.recruiter!.name, profileUrl: next.recruiter!.url, subject: next.subject ?? '', body: next.body!, approvedAt: next.updatedAt };
+}
+
+/** The worker's report on a message it took. A row that is no longer `sending` was settled already, so a repeat is only acknowledged. */
+export async function recordOutreachResult(db: PrivateDb, token: string, id: string, input: OutreachResult, options: WorkerOptions = {}) {
+  return withWorker(db, token, options, async (tx, worker, now) => {
+    const [row] = await tx.select().from(outreach).where(and(eq(outreach.ownerId, worker.ownerId), eq(outreach.id, id)));
+    if (!row) fail(404, 'NOT_FOUND', 'Message not found.');
+    // A confirmed send still counts when its report arrives after the row timed out as unconfirmed.
+    const late = input.outcome === 'sent' && row.state === 'failed' && row.reason === 'send_unconfirmed';
+    if (row.state !== 'sending' && !late) return { state: row.state };
+    const set = input.outcome === 'sent' ? { state: 'sent' as const, reason: 'sent_by_worker', sentAt: now, threadUrl: input.threadUrl }
+      : input.outcome === 'unknown' ? { state: 'failed' as const, reason: 'send_unconfirmed' }
+      // Nothing was typed. An expired approval or a rehearsal returns to the applicant; an existing thread is never written to.
+      : input.reasonCode === 'approval_expired' || input.reasonCode === 'dry_run' ? { state: 'draft' as const, reason: input.reasonCode }
+      : input.reasonCode === 'prior_thread' ? { state: 'skipped' as const, reason: 'prior_thread' }
+      : { state: 'failed' as const, reason: input.reasonCode };
+    return { state: one(await tx.update(outreach).set({ ...set, updatedAt: now })
+      .where(and(eq(outreach.ownerId, worker.ownerId), eq(outreach.id, id), eq(outreach.state, row.state))).returning()).state };
+  });
 }
 
 /** Saves the template. The first save turns outreach on, and only applications submitted after it are queued. */
@@ -86,12 +143,18 @@ export async function commandOutreach(db: PrivateDb, ownerId: string, id: string
       set = { recruiter: command.recruiter, overlap: command.overlap, subject: command.subject, body: command.body };
     } else if (command.action === 'approve' || command.action === 'mark-sent') {
       from('draft', 'failed');
+      // It may be in the recruiter's inbox already, so sending again takes a look at LinkedIn and a reopen first.
+      if (command.action === 'approve' && row.reason === 'send_unconfirmed') {
+        throw new PrivateInputError(409, 'This message may already have been sent. Check LinkedIn, then mark it sent or reopen it.', 'CHECK_LINKEDIN');
+      }
       const unfilled = unfilledSlots(`${command.subject} ${command.body}`);
       if (unfilled.length) throw new PrivateInputError(400, `Fill in ${unfilled.join(', ')} before sending.`, 'UNFILLED');
       // "Even once": a person already messaged, or about to be, is never written to again.
-      const others = await tx.select({ recruiter: outreach.recruiter }).from(outreach)
-        .where(and(eq(outreach.ownerId, ownerId), inArray(outreach.state, ['approved', 'sending', 'sent']), ne(outreach.id, id)));
-      if (others.some((other) => other.recruiter?.url === command.recruiter.url)) {
+      const others = await tx.select({ recruiter: outreach.recruiter, state: outreach.state, reason: outreach.reason }).from(outreach)
+        .where(and(eq(outreach.ownerId, ownerId), ne(outreach.id, id)));
+      // Also someone LinkedIn already shows a thread with, and someone a send may have reached.
+      if (others.some((other) => other.recruiter?.url === command.recruiter.url && (['approved', 'sending', 'sent'].includes(other.state) ||
+        other.reason === 'prior_thread' || other.reason === 'send_unconfirmed'))) {
         throw new PrivateInputError(409, `${command.recruiter.name} was already messaged.`, 'ALREADY_MESSAGED');
       }
       set = { recruiter: command.recruiter, subject: command.subject, body: command.body,

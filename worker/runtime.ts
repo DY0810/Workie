@@ -3,8 +3,10 @@ import { setTimeout as delay } from "node:timers/promises";
 import { z } from "zod";
 import {
   HEARTBEAT_MS, WORKER_PROTOCOL_VERSION, EventRequestSchema, EventResponseSchema,
-  PollResponseSchema, ReceiptCommandSchema,
+  PollResponseSchema, ReceiptCommandSchema, OutreachResultSchema,
 } from "../lib/applications/worker-protocol.ts";
+import type { OutreachTask } from "../lib/applications/outreach-protocol.ts";
+import type { SendOutcome } from "./linkedin.ts";
 import type { Lease, EventRequest, ReceiptCommand } from "../lib/applications/worker-protocol.ts";
 import { SAFE_STAGES, canTransition } from "../lib/applications/state.ts";
 import { createLeaseGuard, systemClock } from "./guard.ts";
@@ -47,6 +49,8 @@ const JournalSchema = z.strictObject({
 /** Verified employer receipts the server did not take, by application, sent again under its next reconcile lease.
  * An unreadable list is dropped rather than stopping the worker on every reconcile lease. */
 const KeptReceiptsSchema = z.record(z.uuid(), ReceiptCommandSchema).catch({});
+/** A recruiter message's outcome, kept until the server has it. */
+const KeptOutreachSchema = z.strictObject({ id: z.uuid(), result: OutreachResultSchema });
 const DispatchResultSchema = z.union([QuestionDispatchSchema, z.strictObject({
   state: z.enum(["screening", "tailoring", "filling", "ready", "needs_answer", "needs_document",
     "needs_policy_decision", "needs_login", "needs_verification", "provider_unavailable",
@@ -78,6 +82,11 @@ export async function runWorker(options: {
   dispatch?: StageDispatch; generate?: StructuredGenerator; configure?: WorkerSetup;
   clock?: () => ClockSample;
   status?: (status: "idle" | "active" | "waiting" | "reconciliation-required" | "stopped") => void;
+  /** Recruiter messages on LinkedIn: asked for only while `enabled`, one at a time, between applications. */
+  outreach?: {
+    enabled(): Promise<boolean>;
+    send(task: OutreachTask, beforeClick: () => Promise<void>, signal: AbortSignal): Promise<SendOutcome>;
+  };
 }) {
   const { scope, store } = options;
   const clock = options.clock ?? systemClock;
@@ -167,6 +176,29 @@ export async function runWorker(options: {
       });
     }
   })().catch(error => { if (!signal.aborted) fail(error); });
+  /** Posts a kept outcome. It stays on disk until the server takes it, so a restart or a blip only delays it. */
+  async function reportOutreach() {
+    const kept = KeptOutreachSchema.safeParse(await store.read("outreach-result"));
+    if (!kept.success) return;
+    try { await abortable(transport.outreachResult(kept.data.id, kept.data.result, signal), signal); }
+    catch (error) {
+      // Refused for good (a message the server no longer has): drop it. Anything else is tried on the next poll.
+      if (!(error instanceof TransportError) || ![400, 404, 409].includes(error.status)) return;
+    }
+    await store.remove("outreach-result");
+  }
+  /** Sends one handed-over message. Its failures are the message's own: never the worker's, never an application's. */
+  async function deliver(task: OutreachTask) {
+    const keep = (result: SendOutcome) =>
+      store.write("outreach-result", { id: task.id, result: { protocolVersion: WORKER_PROTOCOL_VERSION, ...result } });
+    let pressed = false, result: SendOutcome;
+    try {
+      // Written before Send is pressed: a worker that dies after the click reports "may have been sent" when it next starts.
+      result = await options.outreach!.send(task, async () => { await keep({ outcome: "unknown" }); pressed = true; }, signal);
+    } catch { result = pressed ? { outcome: "unknown" } : { outcome: "not_sent", reasonCode: "page_error" }; }
+    await keep(result);
+    await reportOutreach();
+  }
   const questions = questionClient({ scope, store, transport, signal });
   let interventions = Promise.resolve();
   let stage: Promise<unknown> | undefined, submitting = false;
@@ -194,21 +226,30 @@ export async function runWorker(options: {
       }
     })().catch(error => { if (!signal.aborted) fail(error); });
     while (!signal.aborted) {
+      let message: OutreachTask | undefined;
+      if (options.outreach) await reportOutreach().catch(() => {});
       await exclusive(async () => {
         if (signal.aborted) return;
+        const asks = await options.outreach?.enabled().catch(() => false) ?? false;
         const started = clock();
         let response;
         // A poll holds no lease, and the server hands a lost assignment back first, so retry after a blip.
-        try { response = PollResponseSchema.parse(await abortable(transport.poll(signal), signal)); }
+        try { response = PollResponseSchema.parse(await abortable(transport.poll(signal, asks), signal)); }
         catch (error) { if (transient(error)) return; throw error; }
         if (signal.aborted) return;
+        // Only ever handed over with no application to work on (none, or a read-only reconcile lease).
+        message = response.outreach;
         if (!response.lease) { options.status?.("idle"); return; }
         active = { lease: response.lease,
           guard: createLeaseGuard(response.lease, scope, response.serverTime, started, clock) };
       });
       if (signal.aborted) break;
       const current = active as { lease: Lease; guard: LeaseGuard } | null;
-      if (!current) { await delay(HEARTBEAT_MS, undefined, { signal }); continue; }
+      if (!current) {
+        if (message) await deliver(message).catch(() => {});
+        await delay(HEARTBEAT_MS, undefined, { signal });
+        continue;
+      }
       const { lease, guard } = current;
       if (lease.mode === "reconcile" || ["submitting", "submission_unknown"].includes(lease.state)) {
         await exclusive(async () => {
@@ -230,6 +271,7 @@ export async function runWorker(options: {
           active = null;
         });
         options.status?.("reconciliation-required");
+        if (message) await deliver(message).catch(() => {});
         await delay(HEARTBEAT_MS, undefined, { signal });
         continue;
       }

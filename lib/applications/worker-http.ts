@@ -11,6 +11,7 @@ import * as p from './worker-protocol.ts';
 import { createPairing, pairWorker, listWorkers, revokeWorker, revokePairing, scheduleWorker } from './pairing.ts';
 import { createRun, listRuns, commandRun, commandApplication } from './runs.ts';
 import { pollWorker, heartbeatWorker } from './leases.ts';
+import { recordOutreachResult } from './outreach.ts';
 import { recordWorkerEvent } from './events.ts';
 import { beginSubmission, recordReceipt } from './submissions.ts';
 import { applicationContext, applicationDocumentOwner } from './application-context.ts';
@@ -134,7 +135,7 @@ export async function browserWorkerEndpoint(request: Request, action: BrowserAct
     return privateJson(body, { headers });
   } catch (error) { return errorResponse(error, headers); }
 }
-export async function workerEndpoint(request: Request, action: 'pair' | 'poll' | 'heartbeat' | 'event' | 'submission-intent' | 'receipt' | 'provider-config' | 'context' | 'artifact-intent' | 'letter' | 'live' | 'verification-code', id?: string) {
+export async function workerEndpoint(request: Request, action: 'pair' | 'poll' | 'heartbeat' | 'event' | 'submission-intent' | 'receipt' | 'provider-config' | 'context' | 'artifact-intent' | 'letter' | 'live' | 'verification-code' | 'outreach-result', id?: string) {
   try {
     checkPath(request, id ? [id] : []);
     const db = getPrivateDb(), options: WorkerOptions = {};
@@ -165,6 +166,7 @@ export async function workerEndpoint(request: Request, action: 'pair' | 'poll' |
       case 'letter': body = p.SubmittedLetterAckSchema.parse(await recordSubmittedLetter(db, token, id!, p.SubmittedLetterSchema.parse(raw), options)); break;
       case 'live': body = p.LiveFrameAckSchema.parse(await recordLiveFrame(db, token, id!, p.LiveFrameSchema.parse(raw), options)); break;
       case 'verification-code': body = p.VerificationCodeResponseSchema.parse(await takeVerificationCode(db, token, id!, raw, options)); break;
+      case 'outreach-result': body = p.OutreachResultAckSchema.parse(await recordOutreachResult(db, token, id!, p.OutreachResultSchema.parse(raw), options)); break;
       case 'provider-config': {
         ProviderConfigRequestSchema.parse(raw);
         body = await providerConfig(db, workerOwnerId!);
