@@ -216,6 +216,13 @@
     "postings_at_probe": 20
   },
   {
+    "name": "AnaVation",
+    "ats": "lever",
+    "token": "anavationllc",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 72
+  },
+  {
     "name": "Anduril",
     "ats": "greenhouse",
     "token": "andurilindustries",
@@ -243,6 +250,34 @@
       "ai"
     ],
     "verified_at": "2026-08-18T04:01:19.161Z"
+  },
+  {
+    "name": "Apex",
+    "ats": "ashby",
+    "token": "apex-technology-inc",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 137
+  },
+  {
+    "name": "Appian",
+    "ats": "greenhouse",
+    "token": "appian",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 157
+  },
+  {
+    "name": "Aquatic Capital Management",
+    "ats": "greenhouse",
+    "token": "aquaticcapitalmanagement",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 12
+  },
+  {
+    "name": "Arc Boat Company",
+    "ats": "greenhouse",
+    "token": "arcboatcompany",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 46
   },
   {
     "name": "Aries Global",
@@ -377,6 +412,13 @@
     ],
     "verified_at": "2026-08-19T05:35:51.923Z",
     "postings_at_probe": 0
+  },
+  {
+    "name": "Atoms",
+    "ats": "greenhouse",
+    "token": "cssmerge",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 347
   },
   {
     "name": "Aurora Innovation",
@@ -541,6 +583,20 @@
     "postings_at_probe": 49
   },
   {
+    "name": "C3 AI",
+    "ats": "greenhouse",
+    "token": "c3ascend",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 3
+  },
+  {
+    "name": "Cadence Solutions",
+    "ats": "greenhouse",
+    "token": "solutions",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 17
+  },
+  {
     "name": "Calendly",
     "ats": "greenhouse",
     "token": "calendly",
@@ -675,6 +731,13 @@
     ],
     "verified_at": "2026-08-20T07:50:33.439Z",
     "postings_at_probe": 59
+  },
+  {
+    "name": "Circleback",
+    "ats": "ashby",
+    "token": "circleback",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 10
   },
   {
     "name": "Clara",
@@ -822,6 +885,13 @@
     "postings_at_probe": 83
   },
   {
+    "name": "Compeer Financial",
+    "ats": "greenhouse",
+    "token": "compeerfinancial",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 48
+  },
+  {
     "name": "Complir",
     "ats": "ashby",
     "token": "complir",
@@ -899,6 +969,13 @@
     "token": "crusoe",
     "verified_at": "2026-10-29T01:11:55.704Z",
     "postings_at_probe": 358
+  },
+  {
+    "name": "CTGT",
+    "ats": "ashby",
+    "token": "ctgt",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 3
   },
   {
     "name": "Cursor",
@@ -1176,6 +1253,13 @@
     "verified_at": "2026-08-18T04:01:25.854Z"
   },
   {
+    "name": "Ellipsis Labs",
+    "ats": "ashby",
+    "token": "ellipsislabs",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 14
+  },
+  {
     "name": "Enova",
     "ats": "greenhouse",
     "token": "enova",
@@ -1192,6 +1276,20 @@
     ],
     "verified_at": "2026-08-24T20:37:41.692Z",
     "postings_at_probe": 162
+  },
+  {
+    "name": "Etched",
+    "ats": "ashby",
+    "token": "Etched",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 116
+  },
+  {
+    "name": "Eulerity",
+    "ats": "greenhouse",
+    "token": "eulerity",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 12
   },
   {
     "name": "Eventbrite",
@@ -1304,6 +1402,13 @@
     "verified_at": "2026-08-18T04:01:26.291Z"
   },
   {
+    "name": "Five Rings",
+    "ats": "greenhouse",
+    "token": "fiveringsllc",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 19
+  },
+  {
     "name": "Flagship Pioneering",
     "ats": "greenhouse",
     "token": "flagshippioneeringinc",
@@ -1328,6 +1433,13 @@
     ],
     "verified_at": "2026-08-24T20:37:47.199Z",
     "postings_at_probe": 163
+  },
+  {
+    "name": "Flint",
+    "ats": "ashby",
+    "token": "flint",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 10
   },
   {
     "name": "Flow Traders",
@@ -1412,11 +1524,25 @@
     "postings_at_probe": 7
   },
   {
+    "name": "Garda Capital Partners",
+    "ats": "greenhouse",
+    "token": "gardacp",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 9
+  },
+  {
     "name": "GCM Grosvenor",
     "ats": "greenhouse",
     "token": "gcmgrosvenor",
     "verified_at": "2026-10-29T01:12:00.110Z",
     "postings_at_probe": 12
+  },
+  {
+    "name": "Gecko Robotics",
+    "ats": "ashby",
+    "token": "gecko-robotics",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 22
   },
   {
     "name": "Gemini",
@@ -1453,6 +1579,20 @@
     "token": "generalmatter",
     "verified_at": "2026-10-29T01:12:02.003Z",
     "postings_at_probe": 131
+  },
+  {
+    "name": "Genesis Molecular AI",
+    "ats": "ashby",
+    "token": "genesis-molecular-ai",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 10
+  },
+  {
+    "name": "Genius AI",
+    "ats": "ashby",
+    "token": "geniusai",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 17
   },
   {
     "name": "GenMD",
@@ -1540,6 +1680,13 @@
     ],
     "verified_at": "2026-08-19T05:36:05.951Z",
     "postings_at_probe": 87
+  },
+  {
+    "name": "Hadrian",
+    "ats": "ashby",
+    "token": "hadrian-automation",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 171
   },
   {
     "name": "Haladir",
@@ -1713,6 +1860,13 @@
       "voice-ai"
     ],
     "verified_at": "2026-08-18T04:01:21.813Z"
+  },
+  {
+    "name": "Hyannis Port Research",
+    "ats": "greenhouse",
+    "token": "hyannisportresearch",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 12
   },
   {
     "name": "Hyphenate",
@@ -2161,6 +2315,13 @@
     "postings_at_probe": 4
   },
   {
+    "name": "Marshall Wace",
+    "ats": "greenhouse",
+    "token": "mwinternshipprogram",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 8
+  },
+  {
     "name": "Match Group",
     "ats": "lever",
     "token": "matchgroup",
@@ -2455,6 +2616,13 @@
     "postings_at_probe": 31
   },
   {
+    "name": "Netic",
+    "ats": "ashby",
+    "token": "netic",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 36
+  },
+  {
     "name": "Netlify",
     "ats": "greenhouse",
     "token": "netlify",
@@ -2609,6 +2777,13 @@
     "postings_at_probe": 35
   },
   {
+    "name": "Old Mission Capital",
+    "ats": "ashby",
+    "token": "old-mission-capital",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 42
+  },
+  {
     "name": "Ondo Finance",
     "ats": "greenhouse",
     "token": "ondofinance",
@@ -2750,6 +2925,13 @@
     "postings_at_probe": 307
   },
   {
+    "name": "Pangram Labs",
+    "ats": "ashby",
+    "token": "pangramlabs",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 14
+  },
+  {
     "name": "Panther Life Sciences",
     "ats": "ashby",
     "token": "panther-life-sciences",
@@ -2762,6 +2944,13 @@
     "token": "parallel",
     "verified_at": "2026-10-29T01:12:00.434Z",
     "postings_at_probe": 22
+  },
+  {
+    "name": "ParetoHealth",
+    "ats": "greenhouse",
+    "token": "paretocaptiveservicesllc",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 37
   },
   {
     "name": "Parloa",
@@ -2826,6 +3015,13 @@
     ],
     "verified_at": "2026-08-24T18:47:52.165Z",
     "postings_at_probe": 47
+  },
+  {
+    "name": "Perpay",
+    "ats": "greenhouse",
+    "token": "perpay",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 17
   },
   {
     "name": "Perplexity",
@@ -2946,6 +3142,13 @@
     "verified_at": "2026-08-18T04:01:35.280Z"
   },
   {
+    "name": "Point72",
+    "ats": "greenhouse",
+    "token": "point72",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 200
+  },
+  {
     "name": "PolyAI",
     "ats": "greenhouse",
     "token": "polyai",
@@ -3036,6 +3239,34 @@
     ],
     "verified_at": "2026-10-13T06:17:47.821Z",
     "postings_at_probe": 14
+  },
+  {
+    "name": "Quadrillion",
+    "ats": "ashby",
+    "token": "quadrillion-labs",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 6
+  },
+  {
+    "name": "Quantiq",
+    "ats": "greenhouse",
+    "token": "quantiq",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 11
+  },
+  {
+    "name": "Qube Research & Technologies",
+    "ats": "greenhouse",
+    "token": "quberesearchandtechnologies",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 210
+  },
+  {
+    "name": "Qumulo",
+    "ats": "ashby",
+    "token": "qumulo",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 25
   },
   {
     "name": "R/GA",
@@ -3319,6 +3550,13 @@
     "postings_at_probe": 46
   },
   {
+    "name": "Saronic",
+    "ats": "ashby",
+    "token": "saronic",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 271
+  },
+  {
     "name": "Saviynt",
     "ats": "lever",
     "token": "saviynt",
@@ -3349,6 +3587,13 @@
     "postings_at_probe": 26
   },
   {
+    "name": "Scout Motors",
+    "ats": "greenhouse",
+    "token": "scoutmotors",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 202
+  },
+  {
     "name": "Seat Geek",
     "ats": "greenhouse",
     "token": "seatgeek",
@@ -3357,6 +3602,13 @@
     ],
     "verified_at": "2026-10-13T06:17:46.101Z",
     "postings_at_probe": 34
+  },
+  {
+    "name": "Semgrep",
+    "ats": "ashby",
+    "token": "semgrep",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 14
   },
   {
     "name": "Sentry",
@@ -3406,6 +3658,13 @@
       "voice-ai"
     ],
     "verified_at": "2026-08-18T04:01:38.361Z"
+  },
+  {
+    "name": "SharkNinja",
+    "ats": "greenhouse",
+    "token": "sharkninjaoperatingllc",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 149
   },
   {
     "name": "Shield AI",
@@ -3509,6 +3768,13 @@
     ],
     "verified_at": "2026-08-24T18:48:29.221Z",
     "postings_at_probe": 8
+  },
+  {
+    "name": "SpaceX",
+    "ats": "greenhouse",
+    "token": "spacex",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 2855
   },
   {
     "name": "Sparkles",
@@ -3711,6 +3977,13 @@
     "postings_at_probe": 26
   },
   {
+    "name": "Talos",
+    "ats": "ashby",
+    "token": "Talos-Trading",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 20
+  },
+  {
     "name": "Tanium",
     "ats": "greenhouse",
     "token": "tanium",
@@ -3729,6 +4002,13 @@
     ],
     "verified_at": "2026-10-13T06:17:46.386Z",
     "postings_at_probe": 3
+  },
+  {
+    "name": "TELUS Digital",
+    "ats": "ashby",
+    "token": "telus-digital",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 59
   },
   {
     "name": "TELUS International AI Inc",
@@ -3778,11 +4058,25 @@
     "postings_at_probe": 15
   },
   {
+    "name": "The Exploration Company",
+    "ats": "ashby",
+    "token": "the-exploration-company",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 127
+  },
+  {
     "name": "The New York Times",
     "ats": "greenhouse",
     "token": "thenewyorktimes",
     "verified_at": "2026-11-08T10:08:41.408Z",
     "postings_at_probe": 170
+  },
+  {
+    "name": "The Nuclear Company",
+    "ats": "greenhouse",
+    "token": "thenuclearcompany",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 65
   },
   {
     "name": "ThriveCart",
@@ -3984,6 +4278,20 @@
     "verified_at": "2026-08-18T04:01:40.350Z"
   },
   {
+    "name": "Varda Space",
+    "ats": "greenhouse",
+    "token": "vardaspace",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 129
+  },
+  {
+    "name": "Veeam Software",
+    "ats": "greenhouse",
+    "token": "veeamsoftware",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 198
+  },
+  {
     "name": "Veeda AI",
     "ats": "ashby",
     "token": "veeda-ai",
@@ -4029,6 +4337,13 @@
     "postings_at_probe": 8
   },
   {
+    "name": "Viget",
+    "ats": "lever",
+    "token": "viget",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 7
+  },
+  {
     "name": "Viking Global",
     "ats": "greenhouse",
     "token": "vikingglobalinvestors",
@@ -4055,6 +4370,13 @@
     ],
     "verified_at": "2026-10-13T06:17:50.205Z",
     "postings_at_probe": 31
+  },
+  {
+    "name": "Vital Lyfe",
+    "ats": "ashby",
+    "token": "vital-lyfe",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 17
   },
   {
     "name": "Voleon",
@@ -4238,6 +4560,13 @@
     ],
     "verified_at": "2026-09-08T08:24:44.000Z",
     "postings_at_probe": 257
+  },
+  {
+    "name": "Xcimer Energy",
+    "ats": "lever",
+    "token": "xcimer",
+    "verified_at": "2026-11-13T05:49:04.558Z",
+    "postings_at_probe": 67
   },
   {
     "name": "Yuno",
