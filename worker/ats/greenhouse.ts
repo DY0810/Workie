@@ -91,8 +91,11 @@ export async function hostedFields(form: import('playwright').Locator): Promise<
       document.getElementById(`${input.id}-label`)?.textContent ?? document.getElementById(`upload-label-${input.id}`)?.textContent ??
       own ?? input.getAttribute('aria-label') ?? input.id;
     // Helper text under a question ("Commitment" with the real question below it) is part of what the applicant answers.
-    const description = (document.getElementById(`${key}-description`)?.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 2000);
-    return { key, label: label.trim().replace(/\*\s*$/, '').trim(), ...(description ? { description } : {}),
+    const helper = (document.getElementById(`${key}-description`)?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    // A label can hold a whole statement to attest to (ParetoHealth, 1,308 characters, 2026-11-13): its question stays the label, the rest is described.
+    const whole = label.trim().replace(/\*\s*$/, '').trim(), cut = whole.length > 1000 ? whole.slice(0, 1000).indexOf('?') + 1 || 1000 : whole.length;
+    const description = `${whole.slice(cut).trim()} ${helper}`.trim().slice(0, 2000);
+    return { key, label: whole.slice(0, cut), ...(description ? { description } : {}),
       kind: group ? 'radio' : input.type === 'file' ? 'file' : input.getAttribute('role') === 'combobox' ? 'combobox' :
         input.tagName === 'SELECT' ? 'select' : input.type === 'checkbox' ? 'checkbox' : input.type === 'radio' ? 'radio' :
           input.type === 'email' ? 'email' : input.type === 'textarea' ? 'textarea' : 'text',
