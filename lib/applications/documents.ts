@@ -95,7 +95,9 @@ export async function createDocumentGrant(db: PrivateDb, ownerId: string, raw: u
     }
     const [usage] = await tx.select({
       bytes: sql<number>`coalesce(sum(${documents.size}), 0)`, count: sql<number>`count(*)`,
-    }).from(documents).where(and(eq(documents.ownerId, ownerId), sql`${documents.state} != 'expired'`));
+    // The resumes the worker stores per application are not uploads: counted, they filled the quota and nothing removes them.
+    }).from(documents).where(and(eq(documents.ownerId, ownerId), sql`${documents.state} != 'expired'`,
+      sql`${documents.kind} != 'resume_artifact'`));
     if (usage.bytes + input.size > 100 * 1024 * 1024 || usage.count >= 100) {
       throw new DocumentError(429, 'Private document quota exceeded.');
     }

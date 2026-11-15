@@ -112,6 +112,18 @@ describe('owner-scoped immutable document grants', () => {
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     expect(results.find((r) => r.status === 'rejected')).toMatchObject({ reason: { status: 429 } });
   });
+  it('leaves the upload quota free of the resumes the worker stored per application', async () => {
+    // 100 of them at 1 MiB reach both the count and the byte limit.
+    await db.insert(documents).values(Array.from({ length: 100 }, (_, i) => {
+      const id = randomUUID();
+      return {
+        id, ownerId: 'one', kind: 'resume_artifact' as const, name: `application-${i}.pdf`, masterId: id, version: 1,
+        objectKey: `documents/${id}`, storage: 'local' as const, mime: 'application/pdf', size: 1024 * 1024,
+        sha256: 'a'.repeat(64), state: 'available' as const, safetyCheck: 'passed' as const, createdAt: Date.now(),
+      };
+    }));
+    await expect(createDocumentGrant(db, 'one', input(1), storage)).resolves.toMatchObject({ document: { kind: 'resume_master' } });
+  });
   it('allocates distinct concurrent versions without modifying the master', async () => {
     const pdf = await PDFDocument.create(); pdf.addPage();
     const bytes = Buffer.from(await pdf.save());
