@@ -53,6 +53,15 @@ describe('parseOfficialRequirements', () => {
     });
   });
 
+  it('reads "graduate degree program" as a degree level, not a graduation date', () => {
+    expect(parseOfficialRequirements({ ...base, description: 'Education: Current enrollment in an undergraduate or graduate degree program, returning to school in Fall 2027' })).toMatchObject({
+      graduationWindow: null,
+    });
+    expect(parseOfficialRequirements({ ...base, description: 'Open to graduate students graduating in December 2028.' })).toMatchObject({
+      graduationWindow: { earliest: '2028-12', latest: '2028-12' },
+    });
+  });
+
   it('keeps a graduation window separate from the internship term', () => {
     expect(parseOfficialRequirements({ ...base, description: 'Summer 2028 internship. Candidates graduating between Winter 2027 and Summer 2028 are eligible.' })).toMatchObject({
       terms: ['summer 2028'], graduationWindow: { earliest: '2026-12', latest: '2028-08' },
