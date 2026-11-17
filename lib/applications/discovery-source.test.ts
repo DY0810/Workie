@@ -140,6 +140,20 @@ describe.each(['sqlite', 'libsql'] as const)('%s consistent compact capture', (k
     expect(result.candidates.slice(0, 5).every((c) => c.reasons.length > 0)).toBe(true);
   });
 
+  it('knows a role\'s country from any copy of it, and still blocks a copy in another country', async () => {
+    const f = fixture(kind);
+    f.add(1);
+    f.add(2, { country: null }, '1');
+    f.add(3, { country: null });
+    f.add(4, { country: null }, '3');
+    f.add(5);
+    f.add(6, { country: 'CA' }, '5');
+    const result = await captureCandidateSnapshot(f.db, policy({ countries: ['US'] }), NOW);
+    expect(result.candidates.map((c) => [c.postings.length, c.disposition, c.reasons])).toEqual([
+      [2, 'candidate', []], [2, 'needs_question', ['country_unknown']], [2, 'blocked', ['country_restricted']],
+    ]);
+  });
+
   it('never captures a blocked employer, whatever the policy says', async () => {
     const f = fixture(kind);
     f.add(1, { company: 'hussh 🤫', companyNorm: normalizeCompany('hussh 🤫') });

@@ -94,11 +94,10 @@ function screen(candidate: DiscoveryCandidate, policy: Policy) {
   }
   if (policy.sourceRestrictions.length && !candidate.postings.some((p) =>
     p.sources.some((source) => policy.sourceRestrictions.includes(source.source)))) blocked.add('source_restricted');
+  // The postings are copies of one role from several sources: one copy without a country leaves it known from another.
+  if (policy.countries.length && !candidate.postings.some((p) => p.country)) questions.add('country_unknown');
   for (const p of candidate.postings) {
-    if (policy.countries.length) {
-      if (!p.country) questions.add('country_unknown');
-      else if (!policy.countries.includes(p.country)) blocked.add('country_restricted');
-    }
+    if (policy.countries.length && p.country && !policy.countries.includes(p.country)) blocked.add('country_restricted');
     if (policy.employerBlocklist.some((company) => label(company) === label(p.company))) blocked.add('employer_blocked');
     if (policy.targetRoles.length && !policy.targetRoles.some((role) => roleLabel(p.title).includes(roleLabel(role)))) {
       blocked.add('role_not_selected');
