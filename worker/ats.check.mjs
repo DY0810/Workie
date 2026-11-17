@@ -686,7 +686,7 @@ test('persistent browser egress rejects unapproved origins before navigation', {
 });
 
 // Ashby: the hosted form's own markup (observed on OpenAI, Ramp and Notion postings, 2026-10-12), served on loopback.
-const { ashby, pickerDate } = await import('./ats/ashby.ts');
+const { ashby, ashbyAnswer, pickerDate } = await import('./ats/ashby.ts');
 const { formQuestionKey } = await import('./ats/protocol.ts');
 const ashbyPosting = '3813977e-5940-456d-bf5a-16efcdc3a6dc';
 const ashbyEntry = (path, label, input, required = true) => `<div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title${required ? ' _required_f7cvd_91' : ''}" for="${path}">${label}</label>${input}</div>`;
@@ -1103,4 +1103,21 @@ test('a website question with a bracketed note takes the profile website', () =>
   assert.equal(ask('Website Link (github, portfolio, other)'), 'https://example.test/me');
   assert.equal(ask('Website'), 'https://example.test/me');
   assert.equal(ask('Website of your current employer'), undefined);
+});
+
+test('an Ashby form fills its link sentences, education entry and race from the profile', () => {
+  const input = { identity: { ats: 'ashby', tenant: 'fixture', requisition: '1' }, company: 'Fixture', role: 'Intern',
+    applicationUrl: 'https://example.test', answers: { portfolio: 'https://example.test/me', github: 'https://github.test/me',
+      'degree--0': 'bachelor', 'discipline--0': 'Physics/Computer Science', voluntary_race: 'Asian', voluntary_hispanic: 'No' } };
+  const ask = (label, kind = 'text', options) => ashbyAnswer(input, { key: 'k', label, kind, required: false, ...(options ? { options } : {}) });
+  // Live wording: Amplify (2026-11-17).
+  assert.equal(ask('If available, please provide a link to your GitHub, GitLab, personal project site, or technical portfolio showing examples of your code or software projects.'), 'https://github.test/me');
+  assert.equal(ask('If relevant please share your website or LinkedIn page that further demonstrates your skills or experience for this role?'), 'https://example.test/me');
+  assert.equal(ask('Please share the website of your current employer'), undefined);
+  assert.equal(ask('Degree'), "Bachelor's Degree");
+  assert.equal(ask('Field of Study'), 'Physics/Computer Science');
+  const races = ['Hispanic or Latino', 'White (Not Hispanic or Latino)', 'Asian (Not Hispanic or Latino)', 'Decline to self-identify'];
+  assert.equal(ask('Race', 'radio', races), 'Asian (Not Hispanic or Latino)');
+  assert.equal(ashbyAnswer({ ...input, answers: { ...input.answers, voluntary_hispanic: undefined } },
+    { key: 'k', label: 'Race', kind: 'radio', required: false, options: races }), undefined);
 });
