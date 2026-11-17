@@ -60,10 +60,12 @@ function parseTerms(text: string) {
 
 const seasonMonths: Record<string, [string, string]> = { winter: ['12', '02'], spring: ['03', '05'], summer: ['06', '08'], fall: ['09', '11'] };
 const monthNames: Record<string, string> = { january: '01', february: '02', march: '03', april: '04', may: '05', june: '06', july: '07', august: '08', september: '09', october: '10', november: '11', december: '12' };
+// "a graduate degree program" or "graduate students" names a degree level, not when the applicant graduates.
+const GRADUATING = /\bgraduat(?:e|es|ing|ion)\b(?!\s+(?:degrees?|programs?|programmes?|students?|schools?|levels?|stud(?:y|ies)|courses?|coursework|research))/i;
 function graduationWindow(text: string) {
-  const sentence = text.split(/[.\n]/).find(value => /\bgraduat(?:e|es|ing|ion)\b/i.test(value) && /20\d{2}/.test(value));
+  const sentence = text.split(/[.\n]/).find(value => GRADUATING.test(value) && /20\d{2}/.test(value));
   if (!sentence) return null;
-  const clause = sentence.slice(sentence.search(/\bgraduat(?:e|es|ing|ion)\b/i));
+  const clause = sentence.slice(sentence.search(GRADUATING));
   const matches = [...clause.matchAll(/\b(winter|spring|summer|fall|january|february|march|april|may|june|july|august|september|october|november|december)\s+(20\d{2})\b/gi)];
   if (!matches.length || matches.length > 2) return null;
   const bounds = matches.map(match => {
