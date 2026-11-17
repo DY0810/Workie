@@ -495,7 +495,9 @@ export async function continueChangedPosting(tx: WorkerTx, previous: Application
   let closed = false;
   const close = async () => {
     closed = true;
-    return one(await tx.update(applications).set({ state: 'failed', reasonCode: 'posting_changed', revision: previous.revision + 1 })
+    // Closed as a page Retry closes it, so the role is neither listed twice nor returned to the Jobs board.
+    return one(await tx.update(applications).set({ state: 'cancelled', reasonCode: 'restarted', revision: previous.revision + 1,
+      fence: previous.fence + 1, leaseUntil: null, leaseCheckedAt: null })
       .where(and(eq(applications.ownerId, previous.ownerId), eq(applications.id, previous.id), eq(applications.revision, previous.revision))).returning());
   };
   try { return await nextAttempt(tx, run, previous, now, previous.retries + 1, true, close); } catch (error) {

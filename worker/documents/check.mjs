@@ -20,11 +20,11 @@ function syntheticDocx(doubleSpace = false) {
 }
 
 function syntheticPdf(stream = 'BT /F1 12 Tf 50 700 Td (Build APIs) Tj 0 -20 Td (Proven facts) Tj ET',
-  font = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>') {
+  font = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>', moreFonts = '') {
   const bodies = [
     '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
     '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
-    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [6 0 R] >>\nendobj\n',
+    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R ${moreFonts}>> >> /Contents 4 0 R /Annots [6 0 R] >>\nendobj\n`,
   ];
   bodies.push(`4 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`);
   bodies.push(`5 0 obj\n${font}\nendobj\n`);
@@ -128,6 +128,17 @@ test('a line drawn one word per run, read with a zero-width space, is rewritten 
   const text = execFileSync('pdftotext', ['-', '-'], { input: Buffer.from(output) }).toString();
   assert.match(text, /Made quick APIs/);
   assert.doesNotMatch(text, /Built|fast/);
+});
+
+test('a bold label stays as drawn and only the words after it are rewritten', async () => {
+  const widths = `/FirstChar 32 /Widths [${Array(95).fill(500).join(' ')}]`;
+  const bytes = syntheticPdf('BT /F2 12 Tf 1 0 0 1 50 700 Tm (Skills:) Tj /F1 12 Tf 1 0 0 1 100 700 Tm (Python,) Tj 1 0 0 1 150 700 Tm (SQL) Tj ET',
+    `<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman ${widths} >>`, `/F2 << /Type /Font /Subtype /Type1 /BaseFont /Times-Bold ${widths} >> `);
+  const output = await rewritePdfLines(bytes, [{ anchorText: 'Skills: Python, SQL', replacement: 'Skills: Go, Rust' }]);
+  const text = execFileSync('pdftotext', ['-', '-'], { input: Buffer.from(output) }).toString();
+  assert.match(text, /Skills: Go, Rust/);
+  assert.doesNotMatch(text, /Python/);
+  await assert.rejects(rewritePdfLines(bytes, [{ anchorText: 'Skills: Python, SQL', replacement: 'Tools: Go, Rust' }]), /changes the line label/);
 });
 
 test('a posting rewrites the resume bullets that match it, not always the longest five', () => {

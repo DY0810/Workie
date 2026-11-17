@@ -445,6 +445,26 @@ test('a numbered survey dropdown reads its options first, fills a voluntary fact
     assert.equal(await verifyField(page, observation.fields[0], 'Male'), true);
   } finally { await browser.close(); }
 });
+test('a survey race option with a trailing no-break space fills and verifies from the profile', { skip: !browserReady }, async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext();
+    const role = 'Data Science Intern', job = 'https://job-boards.greenhouse.io/schonfeld/jobs/1';
+    // Schonfeld's live survey (2026-11-17) writes "Asian" with a trailing no-break space.
+    const choices = { 1241: ['American Indian or Alaskan Native', 'Asian ', 'White', 'Two or More Races'] };
+    await context.route(job, route => route.fulfill({ contentType: 'text/html; charset=utf-8', body: `<title>Job Application for ${role} at Schonfeld</title>
+      <form id="application-form"><div id="demographic-section">${surveySelect(1241, 'Please identify your race')}</div></form>${surveyScript(choices)}` }));
+    const runtime = { context, page: async () => context.pages()[0] ?? context.newPage(), navigate: async (page, url) => { await page.goto(url); return page; } };
+    const input = { identity: { ats: 'greenhouse', tenant: 'schonfeld', requisition: '1' }, company: 'Schonfeld', role, applicationUrl: job,
+      answers: { voluntary_race: 'Asian' } };
+    const [field] = (await greenhouse.observe(runtime, input)).fields;
+    const value = greenhouse.answer(input, field);
+    assert.equal(value?.trim(), 'Asian');
+    const page = context.pages()[0];
+    await fillField(page, field, value, {});
+    assert.equal(await verifyField(page, field, value), true);
+  } finally { await browser.close(); }
+});
 test('a radio question fills and verifies the exact option the answer names', { skip: !browserReady }, async () => {
   const browser = await chromium.launch({ headless: true });
   try {

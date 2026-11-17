@@ -961,7 +961,7 @@ describe('cap-held backlog and explicit historical attempts', () => {
       reasonCode: 'context_unavailable' }, options);
     const rows = await appRows();
     expect(rows).toHaveLength(2);
-    expect(rows.find((a) => a.id === first.applicationId)).toMatchObject({ state: 'failed', reasonCode: 'posting_changed' });
+    expect(rows.find((a) => a.id === first.applicationId)).toMatchObject({ state: 'cancelled', reasonCode: 'restarted' });
     expect(rows.find((a) => a.id !== first.applicationId)).toMatchObject({ snapshotManifestId: latest, attempt: 2, state: 'queued', retries: 1 });
   });
 

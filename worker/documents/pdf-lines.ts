@@ -320,14 +320,20 @@ export async function rewritePdfLines(bytes: Uint8Array, edits: readonly PdfLine
         const edit = pending.get(squash(lineText(line)));
         if (!edit) continue;
         // A bullet drawn from its own font is a run of its own; it stays, like an inline one below.
-        const words = line.filter((item) => !item.glyphs.every((g) => MARKER.test(g.text) || !g.text.trim()));
+        const words = line.filter((item) => !item.glyphs.every((g) => MARKER.test(g.text) || !squash(g.text)));
         if (!words.length) fail('PDF line has no text to rewrite');
-        const show = words[0];
+        // A leading label in another font ("Languages:" in bold) stays as drawn; the rewrite starts after it.
+        const body = words.at(-1)!.font.baseFont;
+        let labelRuns = 0;
+        while (words[labelRuns].font.baseFont !== body) labelRuns++;
+        if (words.slice(labelRuns).some((item) => item.font.baseFont !== body)) fail('PDF line mixes fonts');
+        const label = squash(words.slice(0, labelRuns).flatMap((run) => run.glyphs.map((g) => g.text)).join(''));
+        const show = words[labelRuns];
         const size = show.size * show.scale;
         // XeLaTeX draws each word as a run of its own: every run's glyphs go, and one line is drawn in their place.
-        if (words.some((item) => Math.abs(item.size * item.scale - size) > 0.01)) fail('PDF line mixes text sizes');
+        if (words.slice(labelRuns).some((item) => Math.abs(item.size * item.scale - size) > 0.01)) fail('PDF line mixes text sizes');
         let firstRemoved: Glyph | undefined, end = -Infinity;
-        for (const [index, run] of words.entries()) {
+        for (const [index, run] of words.slice(labelRuns).entries()) {
           // A leading bullet stays as drawn; only the words after it are rewritten.
           let keep = 0, glyph = 0;
           for (; index === 0 && keep < run.items.length; keep++) {
@@ -350,7 +356,11 @@ export async function rewritePdfLines(bytes: Uint8Array, edits: readonly PdfLine
         if (!firstRemoved) fail('PDF line has no text to rewrite');
         const start = firstRemoved!;
 
-        const text = edit.replacement.replace(/^\s*[•·◦▪‣*]\s*/u, '').trim();
+        const full = edit.replacement.replace(/^\s*[•·◦▪‣*]\s*/u, '').trim();
+        if (!squash(full).startsWith(label)) fail('replacement changes the line label');
+        let cut = 0;
+        for (let seen = 0; seen < label.length; cut++) if (squash(full[cut])) seen++;
+        const text = full.slice(cut).trim();
         const standard = standardFont(show.font.baseFont);
         if (!embedded.has(standard)) embedded.set(standard, await document.embedFont(standard));
         const font = embedded.get(standard)!;

@@ -234,15 +234,14 @@ export async function tailorDocument(input: {
     if (resultBytes.length > MAX_BYTES) throw new DocumentRuntimeError('OUTPUT_TOO_LARGE');
     const result = await inspectBytes(resultBytes, fmt, directory);
     const outputFrozen = frozenTextHash(result.text, manifest.anchors, new Map(edits.map((edit) => [edit.anchorId, edit.replacement])));
-    if (
-      result.pageCount !== manifest.pageCount ||
-      JSON.stringify(result.links) !== JSON.stringify(manifest.links) ||
-      !sameFonts(result.fontDetails, manifest.fontDetails, redrawn) ||
-      JSON.stringify(result.pageGeometry) !== JSON.stringify(manifest.pageGeometry) ||
-      outputFrozen !== manifest.frozenTextHash
-    ) {
-      throw new DocumentRuntimeError('DOCUMENT_INVARIANT_FAILED');
-    }
+    const broken = Object.entries({
+      pages: result.pageCount !== manifest.pageCount,
+      links: JSON.stringify(result.links) !== JSON.stringify(manifest.links),
+      fonts: !sameFonts(result.fontDetails, manifest.fontDetails, redrawn),
+      geometry: JSON.stringify(result.pageGeometry) !== JSON.stringify(manifest.pageGeometry),
+      'other text': outputFrozen !== manifest.frozenTextHash,
+    }).filter(([, failed]) => failed).map(([name]) => name);
+    if (broken.length) throw new DocumentRuntimeError('DOCUMENT_INVARIANT_FAILED', broken.join(', '));
     for (const edit of edits) if (!normalized(result.text).includes(normalized(edit.replacement))) {
       throw new DocumentRuntimeError('EDIT_NOT_PRESENT');
     }
