@@ -32,7 +32,7 @@ import { ApplicationArtifactManifestSchema, type ApplicationArtifactManifest, ar
 import { SUBMIT_APPROVAL } from "../lib/applications/state.ts";
 import { PARKED_STEPS, STAGING_FIXTURE_TENANT } from "../lib/applications/worker-protocol.ts";
 import { serveStagingFixture } from "./ats/greenhouse-fixture.ts";
-import { createTemplateManifest, DocumentRuntimeError, relevantAnchors, tailorDocument } from "./documents/runtime.ts";
+import { createTemplateManifest, DocumentRuntimeError, relevantAnchors, tailorDocument, withLineContext } from "./documents/runtime.ts";
 import { renderCoverLetter } from "./documents/cover-letter.ts";
 
 const ERROR_CODES = new Set([
@@ -230,7 +230,7 @@ export function createStageDispatch(control: WorkerTransport, directory: string,
         const generated = await context.generate({ task: "tailor", role: template.role,
           jobSummary: applicationContext.requirements.officialDescription.slice(0, 12_000),
           evidence: evidence.map(({ id, excerpt }) => ({ id, excerpt })),
-          anchors: editableAnchors.map(({ id, text, maxChars }) => ({ id, text, maxChars })),
+          anchors: withLineContext(template.anchors, editableAnchors),
         }, { signal, runId: lease.runId });
         if (generated.task !== "tailor" || generated.confidence < 0.75) throw new ProviderError("PROVIDER_LOW_CONFIDENCE");
         const request = { role: template.role, masterHash: template.sourceHash, evidence, edits: generated.edits };

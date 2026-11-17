@@ -131,6 +131,33 @@ test("each resume edit keeps its own line's limit, and a line cut off at its lim
   assert.deepEqual(result.edits.map((edit) => edit.anchorId), ["short"]);
 });
 
+test("a rewritten line of a wrapped bullet still runs into the line below it, never finishing or repeating it", async () => {
+  const evidenceId = "00000000-0000-4000-8000-000000000024";
+  const edit = (anchorId, replacement) => ({ anchorId, replacement, evidenceIds: [evidenceId] });
+  const provider = createStructuredProvider({ scope, approvedOwnerId: scope.ownerId, providerId: LOCAL_OLLAMA_PROVIDER_ID,
+    protocol: "ollama_native", locality: "local", endpoint: LOCAL_OLLAMA_ENDPOINT, model: "synthetic-local", policy: structuredLocalPolicy,
+    pricing: structuredLocalPricing, ledger: await structuredLedgerFor("handoff"), fetchImpl: async (_url, init) =>
+      new Response(JSON.stringify({ model: "synthetic-local", message: { role: "assistant", content: JSON.stringify({ task: "tailor", confidence: 0.9,
+        edits: JSON.parse(init.body).messages.at(-1).content.includes('"finished"') ? [
+          edit("finished", "• Built hourly reads of six boards, reporting salary data for every user."),
+          edit("repeated", "• Built hourly reads of six boards for 2,000 users, extracting salary data with"),
+          edit("colon", "• Built a retry-safe TypeScript sender for 12 teams:"),
+        ] : [edit("tail", "with chat, a cache, a router, and a dashboard.")] }) }, done: true, prompt_eval_count: 20, eval_count: 12 }), { status: 200 }) });
+  const tailor = (anchors) => provider.generate({ task: "tailor", role: "Software Engineer", jobSummary: "Build data pipelines.",
+    evidence: [{ id: evidenceId, excerpt: "Built a pipeline." }], anchors });
+  const after = "2,000 users, extracting salary data with source evidence and retries.";
+  const result = await tailor([
+    { id: "finished", text: "• Built a pipeline that reads six job boards every hour for", maxChars: 90, after },
+    { id: "repeated", text: "• Built a pipeline that reads six job boards every hour for", maxChars: 90, after },
+    { id: "colon", text: "• Built a retry-safe sender for 12 teams with 300 testers (TypeScript):", maxChars: 90, after: "claims stop duplicate sends." },
+  ]);
+  // "finished" ends the sentence the next line goes on with; "repeated" prints the next line's words a second time.
+  assert.deepEqual(result.edits.map((item) => item.anchorId), ["colon"]);
+  // A last line that reads on from the line above it, sharing no run of its words, is kept.
+  const tail = await tailor([{ id: "tail", text: "featuring a cache, a router, and a live dashboard.", maxChars: 90, before: "• Developed Acme, a TypeScript chat app on AWS," }]);
+  assert.deepEqual(tail.edits.map((item) => item.anchorId), ["tail"]);
+});
+
 test('cover letters cite resume evidence, fit one page, and reject unsupported content', async () => {
   const id = '00000000-0000-4000-8000-000000000022';
   const letter = { task: 'cover_letter', introduction: 'I am excited to apply for this software internship and contribute to your engineering team.',
