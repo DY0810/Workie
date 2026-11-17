@@ -91,6 +91,9 @@ export function applicationAnswers(profile: Awaited<ReturnType<typeof getProfile
     const race = factValue<string[]>(profile.voluntary.raceEthnicity);
     if (race?.includes('Not Hispanic or Latino')) answers.voluntary_hispanic = 'No';
     else if (race?.includes('Hispanic or Latino')) answers.voluntary_hispanic = 'Yes';
+    // One race beside the Hispanic answer; several are asked, since a form's single choice cannot hold them.
+    const races = race?.filter((item) => !/hispanic|latin/i.test(item));
+    if (races?.length === 1) answers.voluntary_race = races[0];
     const veteran = factValue<string>(profile.voluntary.veteran);
     if (veteran) answers.voluntary_veteran = /^(never|not) a veteran$/.test(label(veteran)) ? 'I am not a protected veteran' : veteran;
     const disability = factValue<string>(profile.voluntary.disability);

@@ -110,6 +110,14 @@ export function providerFailureResult(error: unknown) {
   };
 }
 
+/** A malformed reply (bad JSON or off-schema) is usually one bad sample, so the request goes once more before the row parks. */
+export async function onceMoreIfMalformed<T>(call: () => Promise<T>): Promise<T> {
+  try { return await call(); } catch (error) {
+    if (!(error instanceof ProviderError) || error.code !== "PROVIDER_INVALID_RESPONSE" || !["json", "schema"].includes(error.diagnostic ?? "")) throw error;
+    return call();
+  }
+}
+
 export function atsFailureReason(error: unknown) {
   if (error instanceof AtsError) {
     // A field key names the failing field; any other message may hold a private value and is dropped.
@@ -571,7 +579,7 @@ export async function main(args = process.argv.slice(2)) {
         const current = await control.providerConfig(options?.signal);
         const configured = await configuredForChecked(current, options?.signal);
         if (!configured) throw new ProviderError("PROVIDER_DISABLED");
-        return configured.generate(input, options);
+        return onceMoreIfMalformed(() => configured.generate(input, options));
       };
       const dispatch = createStageDispatch(control, directory, signal);
       return { generate, dispatch };

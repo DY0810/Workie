@@ -6,6 +6,7 @@ import { getPolicy, hashValue } from './stores.ts';
 import { canTransition, isTerminalState, isWaitingState } from './state.ts';
 import { EventRequestSchema, type EventRequest, type EventResponse } from './worker-protocol.ts';
 import { checkedLease } from './leases.ts';
+import { continueChangedPosting } from './discovery.ts';
 import { withWorker, appScope, one, leaseOf, fail, WorkerError, type WorkerOptions } from './worker-store.ts';
 
 export async function recordWorkerEvent(
@@ -55,6 +56,7 @@ export async function recordWorkerEvent(
       ownerId: worker.ownerId, applicationId, eventId: command.eventId, requestHash: hashValue(command),
       acknowledgement: { ...acknowledgement, lease: null }, createdAt: now,
     }).returning({ eventId: applicationEvents.eventId }));
+    if (command.state === 'retryable_failure' && command.reasonCode === 'context_unavailable') await continueChangedPosting(tx, updated, now);
     return acknowledgement;
   });
 }

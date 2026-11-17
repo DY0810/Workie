@@ -949,6 +949,28 @@ describe('cap-held backlog and explicit historical attempts', () => {
     expect(await contextFor(retry)).toMatchObject({ applicationId: next.id });
   });
 
+  it('continues a role on its own when the worker finds its posting changed after a newer scan of it', async () => {
+    const { token, run } = await prepared(); addPostings(1); await complete(token, run.id);
+    const first = (await poll(token)).lease!;
+    corpus.update(postings).set({ description: 'Fixture description, revised by the employer' }).run();
+    now += DISCOVERY_INTERVAL_MS + 1;
+    await complete(token, run.id);
+    const latest = (await getDiscoveryStatus(db, 'alice', run.id, options)).manifestId;
+    await recordWorkerEvent(db, token, first.applicationId, { protocolVersion: 1, eventId: randomUUID(), fence: first.fence,
+      expectedRevision: first.revision, state: 'retryable_failure', checkpoint: { stage: first.state as 'screening', sequence: (first.checkpoint?.sequence ?? 0) + 1 },
+      reasonCode: 'context_unavailable' }, options);
+    const rows = await appRows();
+    expect(rows).toHaveLength(2);
+    expect(rows.find((a) => a.id === first.applicationId)).toMatchObject({ state: 'cancelled', reasonCode: 'restarted' });
+    expect(rows.find((a) => a.id !== first.applicationId)).toMatchObject({ snapshotManifestId: latest, attempt: 2, state: 'queued', retries: 1 });
+  });
+
+  it('leaves a changed posting for a retry when the run has not scanned it again', async () => {
+    const { token, run } = await prepared(); addPostings(1); await complete(token, run.id);
+    await recrawled(token, run.id, { description: 'Fixture description, revised by the employer' });
+    expect(await appRows()).toMatchObject([{ state: 'retryable_failure', reasonCode: 'context_unavailable' }]);
+  });
+
   it('does not queue a re-crawled role that the policy now holds', async () => {
     const { token, run } = await prepared('alice', { employerBlocklist: ['Blocked Co'] }); addPostings(1); await complete(token, run.id);
     const { restart } = await recrawled(token, run.id, { company: 'Blocked Co' });

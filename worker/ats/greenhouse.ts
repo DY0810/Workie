@@ -48,10 +48,12 @@ export function greenhouseAnswer(input: AtsApplication, field: AtsField) {
   if (/^\d+$/.test(field.key)) {
     const text = field.label.toLowerCase();
     const about = ([['voluntary_gender', /\bgender\b/], ['voluntary_hispanic', /\b(hispanic|latin[aox])\b/], ['voluntary_veteran', /\bveteran\b/],
-      ['voluntary_disability', /\bdisabilit(y|ies)\b/], [null, /\brac(e|ial)\b|\bethnic|transgender|orientation|pronoun|\bsex\b|\bnot\b/]] as const)
+      ['voluntary_disability', /\bdisabilit(y|ies)\b/], ['voluntary_race', /\brac(e|ial)\b/],
+      [null, /\bethnic|transgender|orientation|pronoun|\bsex\b|\bnot\b/]] as const)
       .filter(([, pattern]) => pattern.test(text));
     const value = about.length === 1 && about[0][0] ? input.answers[about[0][0]] : undefined;
-    return typeof value === 'string' && field.options?.includes(value) ? value : undefined;
+    // Options can carry a trailing no-break space ("Asian ": Schonfeld, 2026-11-17); the form's own text is what fills.
+    return typeof value === 'string' ? field.options?.find((option) => option.trim() === value) : undefined;
   }
   if (field.key === 'candidate-location' && field.label === 'Location (City)') return input.answers.current_location;
   const month = (value: string) => new Date(`${value}-01T00:00:00Z`).toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });

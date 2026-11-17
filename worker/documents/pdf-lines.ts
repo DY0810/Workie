@@ -269,7 +269,8 @@ function lineText(line: Show[]) {
   return text;
 }
 
-const squash = (value: string) => value.replace(/\s+/g, '');
+// pdftotext reads a zero-width space the page draws as nothing (a LaTeX bullet's spacing).
+const squash = (value: string) => value.replace(/[\s​-‍⁠﻿]+/g, '');
 const MARKER = /^[•·◦▪‣\-–—*]$/u;
 const hex = (bytes: number[]) => `<${bytes.map((b) => b.toString(16).padStart(2, '0')).join('')}>`;
 
@@ -319,38 +320,56 @@ export async function rewritePdfLines(bytes: Uint8Array, edits: readonly PdfLine
         const edit = pending.get(squash(lineText(line)));
         if (!edit) continue;
         // A bullet drawn from its own font is a run of its own; it stays, like an inline one below.
-        const words = line.filter((item) => !item.glyphs.every((g) => MARKER.test(g.text) || !g.text.trim()));
-        if (words.length !== 1) fail('PDF line spans several text runs');
-        const show = words[0];
-        // A leading bullet stays as drawn; only the words after it are rewritten.
-        let keep = 0, glyph = 0;
-        for (; keep < show.items.length; keep++) {
-          if (show.items[keep].kind !== 'glyph') continue;
-          if (!MARKER.test(show.glyphs[glyph].text)) break;
-          glyph++;
+        const words = line.filter((item) => !item.glyphs.every((g) => MARKER.test(g.text) || !squash(g.text)));
+        if (!words.length) fail('PDF line has no text to rewrite');
+        // A leading label in another font ("Languages:" in bold) stays as drawn; the rewrite starts after it.
+        const body = words.at(-1)!.font.baseFont;
+        let labelRuns = 0;
+        while (words[labelRuns].font.baseFont !== body) labelRuns++;
+        if (words.slice(labelRuns).some((item) => item.font.baseFont !== body)) fail('PDF line mixes fonts');
+        const label = squash(words.slice(0, labelRuns).flatMap((run) => run.glyphs.map((g) => g.text)).join(''));
+        const show = words[labelRuns];
+        const size = show.size * show.scale;
+        // XeLaTeX draws each word as a run of its own: every run's glyphs go, and one line is drawn in their place.
+        if (words.slice(labelRuns).some((item) => Math.abs(item.size * item.scale - size) > 0.01)) fail('PDF line mixes text sizes');
+        let firstRemoved: Glyph | undefined, end = -Infinity;
+        for (const [index, run] of words.slice(labelRuns).entries()) {
+          // A leading bullet stays as drawn; only the words after it are rewritten.
+          let keep = 0, glyph = 0;
+          for (; index === 0 && keep < run.items.length; keep++) {
+            if (run.items[keep].kind !== 'glyph') continue;
+            if (!MARKER.test(run.glyphs[glyph].text)) break;
+            glyph++;
+          }
+          const kept = run.items.slice(0, keep);
+          const removed = run.items.slice(keep);
+          firstRemoved ??= run.glyphs[glyph];
+          const offset = kept.reduce((sum, item) => sum + item.tx, 0);
+          const advance = removed.reduce((sum, item) => sum + item.tx, 0);
+          const array = [...kept.map((item) => (item.kind === 'glyph' ? hex(item.bytes) : String(item.value))),
+            String(Number(((-advance / (run.size * run.th)) * 1000).toFixed(3)))];
+          const lead = run.prefix === 'Tstar' ? 'T* ' : run.prefix === 'quote'
+            ? `${(run.quote![0] as { value: number }).value} Tw ${(run.quote![1] as { value: number }).value} Tc T* ` : '';
+          splices.push({ start: run.op.start, end: run.op.end, text: `${lead}[${array.join(' ')}] TJ` });
+          end = Math.max(end, run.x + (offset + advance) * run.xscale);
         }
-        const kept = show.items.slice(0, keep);
-        const removed = show.items.slice(keep);
-        const firstRemoved = show.glyphs[glyph];
         if (!firstRemoved) fail('PDF line has no text to rewrite');
-        const advance = removed.reduce((sum, item) => sum + item.tx, 0);
-        const array = [...kept.map((item) => (item.kind === 'glyph' ? hex(item.bytes) : String(item.value))),
-          String(Number(((-advance / (show.size * show.th)) * 1000).toFixed(3)))];
-        const lead = show.prefix === 'Tstar' ? 'T* ' : show.prefix === 'quote'
-          ? `${(show.quote![0] as { value: number }).value} Tw ${(show.quote![1] as { value: number }).value} Tc T* ` : '';
-        splices.push({ start: show.op.start, end: show.op.end, text: `${lead}[${array.join(' ')}] TJ` });
+        const start = firstRemoved!;
 
-        const text = edit.replacement.replace(/^\s*[•·◦▪‣*]\s*/u, '').trim();
+        const full = edit.replacement.replace(/^\s*[•·◦▪‣*]\s*/u, '').trim();
+        if (!squash(full).startsWith(label)) fail('replacement changes the line label');
+        let cut = 0;
+        for (let seen = 0; seen < label.length; cut++) if (squash(full[cut])) seen++;
+        const text = full.slice(cut).trim();
         const standard = standardFont(show.font.baseFont);
         if (!embedded.has(standard)) embedded.set(standard, await document.embedFont(standard));
         const font = embedded.get(standard)!;
-        const size = show.size * show.scale;
-        const room = advance * show.xscale;
+        const room = end - start.x;
         const natural = font.widthOfTextAtSize(text, size);
         const squeeze = Math.min(100, (room / natural) * 100);
         if (squeeze < 80) fail('replacement does not fit its line');
         const key = page.node.newFontDictionary('WorkieLine', font.ref);
-        overlay.push(`BT ${key} ${size.toFixed(3)} Tf ${squeeze.toFixed(2)} Tz 1 0 0 1 ${firstRemoved.x.toFixed(3)} ${firstRemoved.y.toFixed(3)} Tm 0 g ${font.encodeText(text)} Tj ET`);
+        overlay.push(`BT ${key} ${size.toFixed(3)} Tf ${squeeze.toFixed(2)} Tz 1 0 0 1 ${start.x.toFixed(3)} ${start.y.toFixed(3)} Tm 0 g ${font.encodeText(text)} Tj ET`);
         pending.delete(squash(edit.anchorText));
       }
       if (!splices.length) continue;

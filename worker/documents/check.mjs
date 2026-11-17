@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { zipSync, strToU8 } from 'fflate';
 import { createTemplateManifest, DocumentRuntimeError, relevantAnchors, tailorDocument } from './runtime.ts';
+import { rewritePdfLines } from './pdf-lines.ts';
 
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const PDF = 'application/pdf';
@@ -18,15 +19,15 @@ function syntheticDocx(doubleSpace = false) {
   });
 }
 
-function syntheticPdf() {
+function syntheticPdf(stream = 'BT /F1 12 Tf 50 700 Td (Build APIs) Tj 0 -20 Td (Proven facts) Tj ET',
+  font = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>', moreFonts = '') {
   const bodies = [
     '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
     '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
-    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [6 0 R] >>\nendobj\n',
+    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R ${moreFonts}>> >> /Contents 4 0 R /Annots [6 0 R] >>\nendobj\n`,
   ];
-  const stream = 'BT /F1 12 Tf 50 700 Td (Build APIs) Tj 0 -20 Td (Proven facts) Tj ET';
   bodies.push(`4 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`);
-  bodies.push('5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n');
+  bodies.push(`5 0 obj\n${font}\nendobj\n`);
   bodies.push('6 0 obj\n<< /Type /Annot /Subtype /Link /Rect [50 700 150 720] /A << /S /URI /URI (https://example.test/job) >> >>\nendobj\n');
   let output = '%PDF-1.4\n';
   const offsets = [0];
@@ -117,6 +118,27 @@ test('a LaTeX PDF with subset CID fonts gets its bullet line rewritten in place'
   assert.doesNotMatch(text, /Designed onboarding flows/);
   assert.match(text, /• Built a design system with 40 components/, 'other lines are untouched');
   assert.deepEqual(tailored.checks, { pageCount: 1, linksPreserved: true, frozenTextPreserved: true, anchorsFit: true });
+});
+
+test('a line drawn one word per run, read with a zero-width space, is rewritten as one line', async () => {
+  // XeLaTeX resumes draw each word as its own run, and pdftotext reads their bullets as "•​".
+  const font = `<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /FirstChar 32 /Widths [${Array(95).fill(500).join(' ')}] >>`;
+  const bytes = syntheticPdf('BT /F1 12 Tf 1 0 0 1 50 700 Tm (Built) Tj 1 0 0 1 90 700 Tm (fast) Tj 1 0 0 1 120 700 Tm (APIs) Tj ET', font);
+  const output = await rewritePdfLines(bytes, [{ anchorText: 'Built​ fast APIs', replacement: 'Made quick APIs' }]);
+  const text = execFileSync('pdftotext', ['-', '-'], { input: Buffer.from(output) }).toString();
+  assert.match(text, /Made quick APIs/);
+  assert.doesNotMatch(text, /Built|fast/);
+});
+
+test('a bold label stays as drawn and only the words after it are rewritten', async () => {
+  const widths = `/FirstChar 32 /Widths [${Array(95).fill(500).join(' ')}]`;
+  const bytes = syntheticPdf('BT /F2 12 Tf 1 0 0 1 50 700 Tm (Skills:) Tj /F1 12 Tf 1 0 0 1 100 700 Tm (Python,) Tj 1 0 0 1 150 700 Tm (SQL) Tj ET',
+    `<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman ${widths} >>`, `/F2 << /Type /Font /Subtype /Type1 /BaseFont /Times-Bold ${widths} >> `);
+  const output = await rewritePdfLines(bytes, [{ anchorText: 'Skills: Python, SQL', replacement: 'Skills: Go, Rust' }]);
+  const text = execFileSync('pdftotext', ['-', '-'], { input: Buffer.from(output) }).toString();
+  assert.match(text, /Skills: Go, Rust/);
+  assert.doesNotMatch(text, /Python/);
+  await assert.rejects(rewritePdfLines(bytes, [{ anchorText: 'Skills: Python, SQL', replacement: 'Tools: Go, Rust' }]), /changes the line label/);
 });
 
 test('a posting rewrites the resume bullets that match it, not always the longest five', () => {
