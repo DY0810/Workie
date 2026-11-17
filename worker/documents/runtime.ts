@@ -156,7 +156,11 @@ async function inspectBytes(bytes: Uint8Array, fmt: 'pdf' | 'docx', directory: s
   const input = join(directory, `input.${fmt}`);
   await writeFile(input, bytes, { mode: 0o600, flag: 'wx' });
   const result = inspection.parse(await python({ operation: 'inspect', input, format: fmt }));
-  return fmt === 'pdf' ? { ...result, links: await activePdfLinks(bytes) } : result;
+  if (fmt !== 'pdf') return result;
+  // pdftotext keeps zero-width spaces the page draws as nothing; an anchor carrying one matches no drawn line.
+  const visible = (text: string) => text.replace(/[​-‍⁠﻿]/g, '');
+  return { ...result, text: visible(result.text), anchors: result.anchors.map((item) => ({ ...item, text: visible(item.text) })),
+    links: await activePdfLinks(bytes) };
 }
 
 export async function createTemplateManifest(bytesInput: Uint8Array, mime: string, role: string): Promise<TemplateManifest> {

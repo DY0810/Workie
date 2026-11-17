@@ -110,7 +110,8 @@ export function commonAnswer(input: AtsApplication, field: AtsField) {
   if (field.kind === 'text') {
     if (/^linkedin\b|\blinkedin (profile|url|link)\b/.test(text)) return input.answers.linkedin;
     if (/^github\b|\bgithub (profile|url|link|username)\b/.test(text)) return input.answers.github;
-    if (/^(personal |other )?(website|portfolio)( url| link)?( \(optional\))?$/.test(text)) return input.answers.portfolio;
+    // A bracketed note ("Website Link (github, portfolio, other)": Aurora) does not change what is asked.
+    if (/^(personal |other )?(website|portfolio)( url| link)?( \([^)]*\))?$/.test(text)) return input.answers.portfolio;
   }
   const authorization = /\bauthori[sz]ed to work\b/.test(text), sponsorship = /\bsponsorship\b/.test(text);
   if (authorization === sponsorship) return undefined;

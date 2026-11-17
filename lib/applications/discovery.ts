@@ -429,7 +429,8 @@ export async function abandonDiscovery(db: PrivateDb, ownerId: string, runId: st
 }
 
 /** The next attempt of `previous`'s role in `run`, from the run's complete discovery snapshot. */
-async function nextAttempt(tx: WorkerTx, run: typeof applicationRuns.$inferSelect, previous: ApplicationRow, now: number, retries = 0) {
+async function nextAttempt(tx: WorkerTx, run: typeof applicationRuns.$inferSelect, previous: ApplicationRow, now: number, retries = 0,
+  newerSnapshotOnly = false, beforeWrite?: () => Promise<unknown>) {
   const ownerId = run.ownerId, runId = run.id;
   const [target] = await tx.select().from(discoveryTargets).where(and(
     eq(discoveryTargets.ownerId, ownerId), eq(discoveryTargets.runId, runId), eq(discoveryTargets.ats, previous.ats),
@@ -462,6 +463,8 @@ async function nextAttempt(tx: WorkerTx, run: typeof applicationRuns.$inferSelec
     }
   }
   if (candidate.disposition !== 'candidate') fail();
+  if (newerSnapshotOnly && !refrozen) fail(409, 'DISCOVERY_REQUIRED', 'The run has not scanned the role again yet.');
+  await beforeWrite?.();
   if (refrozen) {
     // A target's evidence is immutable while it holds an application, so release it first, as staging does for a stopped
     // run's unsubmitted role. The previous attempt still names its own snapshot, which stays retained.
@@ -477,6 +480,29 @@ async function nextAttempt(tx: WorkerTx, run: typeof applicationRuns.$inferSelec
   }).returning());
   one(await tx.update(discoveryTargets).set({ applicationId: row.id, disposition: 'eligible' }).where(targetScope).returning());
   return row;
+}
+
+/** A role whose posting changed after it was queued continues at once as a fresh attempt from the run's newer scan of it,
+ * so an answered question does not end on a failure the applicant must retry by hand. Without a newer scan it stays put. */
+export async function continueChangedPosting(tx: WorkerTx, previous: ApplicationRow, now: number) {
+  if (previous.retries >= 3) return null;
+  const [run] = await tx.select().from(applicationRuns).where(runScope(previous.ownerId, previous.runId));
+  if (!run || !await currentDiscoveryPolicy(tx, run, now)) return null;
+  const [latest] = await tx.select().from(applications).where(identityMatch(previous)).orderBy(desc(applications.attempt)).limit(1);
+  if (latest.id !== previous.id || await manuallySuppressed(tx, previous)) return null;
+  // nextAttempt refuses before it writes anything, so a refusal leaves the transaction clean; the database takes a
+  // successor only to a closed attempt, so this one closes once every check has passed.
+  let closed = false;
+  const close = async () => {
+    closed = true;
+    return one(await tx.update(applications).set({ state: 'failed', reasonCode: 'posting_changed', revision: previous.revision + 1 })
+      .where(and(eq(applications.ownerId, previous.ownerId), eq(applications.id, previous.id), eq(applications.revision, previous.revision))).returning());
+  };
+  try { return await nextAttempt(tx, run, previous, now, previous.retries + 1, true, close); } catch (error) {
+    // After the close, a failure must undo the whole event rather than strand a closed role with no successor.
+    if (error instanceof WorkerError && !closed) return null;
+    throw error;
+  }
 }
 export async function reapplyApplication(
   db: PrivateDb, ownerId: string, runId: string, input: ReapplyRequest, options: WorkerOptions = {},

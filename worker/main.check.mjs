@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { atsFailureReason, createApplicationArtifactManifest, ensureProviderCapability, hasVerifiedTailoredArtifact, providerFailureResult } from "./main.ts";
+import { atsFailureReason, createApplicationArtifactManifest, ensureProviderCapability, hasVerifiedTailoredArtifact, onceMoreIfMalformed, providerFailureResult } from "./main.ts";
 import { AtsError } from "./ats/protocol.ts";
 import { artifactManifestHash, artifactRequestId } from "../lib/applications/artifact-protocol.ts";
 import { ProviderError } from "./providers.ts";
@@ -111,4 +111,17 @@ test("provider failures checkpoint as resumable state and do not block the next 
   } finally {
     await rm(localDirectory, { recursive: true, force: true });
   }
+});
+
+test("a malformed provider reply is asked once more; other provider failures are not", async () => {
+  const calls = (errors) => { let n = 0; return { count: () => n, call: async () => { const error = errors[n++]; if (error) throw error; return "ok"; } }; };
+  const malformed = calls([new ProviderError("PROVIDER_INVALID_RESPONSE", "schema")]);
+  assert.equal(await onceMoreIfMalformed(malformed.call), "ok");
+  assert.equal(malformed.count(), 2);
+  const twice = calls([new ProviderError("PROVIDER_INVALID_RESPONSE", "json"), new ProviderError("PROVIDER_INVALID_RESPONSE", "json")]);
+  await assert.rejects(onceMoreIfMalformed(twice.call), { code: "PROVIDER_INVALID_RESPONSE" });
+  assert.equal(twice.count(), 2);
+  const quota = calls([new ProviderError("PROVIDER_QUOTA_EXCEEDED")]);
+  await assert.rejects(onceMoreIfMalformed(quota.call), { code: "PROVIDER_QUOTA_EXCEEDED" });
+  assert.equal(quota.count(), 1);
 });

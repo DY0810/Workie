@@ -9,7 +9,7 @@ import { chromium } from 'playwright';
 import { BrowserEgressError, createBrowserRuntime, openApplicationTab, originApproved } from './browser.ts';
 import { greenhouse, greenhouseAnswer, hostedFields, hostedTitle } from './ats/greenhouse.ts';
 import { hcaptchaChallengeShown, lever, matchOption } from './ats/lever.ts';
-import { fieldKeyFor, fillField, formQuestionKey as leverQuestionKey, locateField, undergraduateTranscript, verifyField } from './ats/protocol.ts';
+import { commonAnswer, fieldKeyFor, fillField, formQuestionKey as leverQuestionKey, locateField, undergraduateTranscript, verifyField } from './ats/protocol.ts';
 import { fillAtsApplication, runAtsApplication } from './application-runner.ts';
 import { AtsIdentitySchema, AtsObservationSchema } from './ats/protocol.ts';
 import { resolveApplicationIdentity } from '../lib/applications/application-identity.ts';
@@ -393,6 +393,11 @@ test('a numbered demographic survey question takes a voluntary fact only when it
   assert.equal(answer('Do you have a disability or chronic condition (physical, visual, auditory, cognitive, mental, emotional, other)?', ['Yes', 'No', decline]), undefined);
   assert.equal(answer('Do you identify as transgender?', ['Yes', 'No', 'Male']), undefined);
   assert.equal(answer('Gender', undefined), undefined, 'without the form\'s options nothing is picked');
+  // A single confirmed race fills a race-only question, as the form writes the option (Schonfeld, 2026-11-17).
+  const raced = (label, options) => greenhouseAnswer({ ...input, answers: { ...answers, voluntary_race: 'Asian' } }, { key: '1241', label, kind: 'combobox', required: false, options });
+  assert.equal(raced('Please identify your race', ['American Indian or Alaskan Native', 'Asian ', 'White', 'Two or More Races']), 'Asian ');
+  assert.equal(raced('Please indicate your race / ethnic group (choose all that apply)', ['Asian', 'Hispanic or Latino']), undefined);
+  assert.equal(raced('Race', ['East Asian', 'South Asian', 'White']), undefined, 'a split list is asked');
   // Under ask_each_sensitive the profile sends no voluntary facts, so every survey question is asked.
   assert.equal(greenhouseAnswer({ ...input, answers: {} }, { key: '1653', label: 'Gender', kind: 'combobox', required: true, options: ['Male', 'Female'] }), undefined);
   // An inbox answer wins, keyed as every form question is.
@@ -1068,4 +1073,14 @@ test('a long Lever list takes the profile school only when it is one option exac
     await fill('stanford university');
     assert.equal(await page.locator('select').evaluate(node => node.selectedOptions[0].label), 'Stanford University');
   } finally { await browser.close(); }
+});
+
+test('a website question with a bracketed note takes the profile website', () => {
+  const input = { identity: { ats: 'ashby', tenant: 'fixture', requisition: '1' }, company: 'Fixture', role: 'Intern',
+    applicationUrl: 'https://example.test', answers: { portfolio: 'https://example.test/me' } };
+  const ask = (label) => commonAnswer(input, { key: 'k', label, kind: 'text', required: false });
+  // Live wording: Aurora (2026-11-17) and Schonfeld (2026-11-17).
+  assert.equal(ask('Website Link (github, portfolio, other)'), 'https://example.test/me');
+  assert.equal(ask('Website'), 'https://example.test/me');
+  assert.equal(ask('Website of your current employer'), undefined);
 });
