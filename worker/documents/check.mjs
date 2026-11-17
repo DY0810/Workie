@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { zipSync, strToU8 } from 'fflate';
-import { createTemplateManifest, DocumentRuntimeError, relevantAnchors, tailorDocument } from './runtime.ts';
+import { createTemplateManifest, DocumentRuntimeError, relevantAnchors, tailorDocument, withLineContext } from './runtime.ts';
 import { rewritePdfLines } from './pdf-lines.ts';
 
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -157,4 +157,12 @@ test('a posting rewrites the resume bullets that match it, not always the longes
   assert.deepEqual(ids('Frontend intern: React, Next.js, TypeScript and Tailwind, talking to REST APIs.'), ['web', 'api']);
   // The name line is never a bullet to rewrite, even when the posting shares none of the bullets' words.
   assert.ok(!relevantAnchors(anchors, 'Nothing in common', 5, 6).some(anchor => anchor.id === 'name'));
+});
+
+test('a line of a wrapped bullet carries the lines printed around it, and a bullet line carries none from above', () => {
+  const at = (id, text) => ({ id, text, maxChars: 90 });
+  const anchors = [at('line-3', '• Built a pipeline that reads six job boards every hour for'), at('line-4', '2,000 users, extracting salary data with retries.'),
+    at('line-5', '• Wrote the parser tests.'), at('line-7', 'a line two below, after a title that is not an anchor')];
+  assert.deepEqual(withLineContext(anchors, [anchors[0], anchors[1], anchors[2], anchors[3]]), [
+    { ...anchors[0], after: anchors[1].text }, { ...anchors[1], before: anchors[0].text }, anchors[2], anchors[3]]);
 });

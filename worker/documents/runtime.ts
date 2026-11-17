@@ -44,6 +44,16 @@ export function relevantAnchors<T extends { text: string; maxChars: number }>(an
     .map(anchor => ({ anchor, score: score(anchor) })).sort((a, b) => b.score - a.score || b.anchor.maxChars - a.anchor.maxChars)
     .slice(0, count).map(item => item.anchor);
 }
+const BULLET = /^\s*[•·◦▪‣*]/u;
+// A wrapped bullet prints as several lines, so a rewrite of one line has to read on from the line above it and into the line below it.
+export function withLineContext(anchors: readonly { id: string; text: string }[], picked: readonly { id: string; text: string; maxChars: number }[]) {
+  const byId = new Map(anchors.map(anchor => [anchor.id, anchor]));
+  const near = (id: string, step: number) => { const line = /^line-(\d+)$/.exec(id); return line ? byId.get(`line-${Number(line[1]) + step}`) : undefined; };
+  return picked.map(({ id, text, maxChars }) => {
+    const above = BULLET.test(text) ? undefined : near(id, -1), below = near(id, 1);
+    return { id, text, maxChars, ...(above ? { before: above.text } : {}), ...(below && !BULLET.test(below.text) ? { after: below.text } : {}) };
+  });
+}
 export const TailorEvidenceSchema = z.strictObject({ id: uuid, confirmed: z.literal(true), excerpt: z.string().trim().min(1).max(1000) });
 export const TailorEditSchema = z.strictObject({
   anchorId: z.string().regex(/^[a-z][a-z0-9-]{0,80}$/), replacement: z.string().trim().min(1).max(2000),
