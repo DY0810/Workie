@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { Locator, Page, Request } from 'playwright';
 import { disclosureAnswerKey } from '../../lib/applications/application-context-protocol.ts';
 import { SUBMIT_WAIT_MS } from '../../lib/applications/worker-protocol.ts';
-import { AtsError, AtsObservationSchema, fillEach, type AtsAdapter, type AtsApplication, type AtsField, type AtsValue, commonAnswer, fieldKeyFor, formQuestionKey } from './protocol.ts';
+import { AtsError, AtsObservationSchema, fillEach, type AtsAdapter, type AtsApplication, type AtsField, type AtsValue, commonAnswer, degreeNames, fieldKeyFor, formQuestionKey } from './protocol.ts';
 
 const VERIFICATION_WAIT_MS = SUBMIT_WAIT_MS; // time for the applicant to pass the captcha in the visible window
 
@@ -56,6 +56,14 @@ export function ashbyAnswer(input: AtsApplication, field: AtsField): AtsValue | 
   if (voluntary) {
     const value = input.answers[voluntary];
     return typeof value === 'string' && field.options?.includes(value) ? value : undefined;
+  }
+  // The education entry's text boxes (Amplify, 2026-11-17). shortcut: its Start/End Date dropdowns stay blank, add them when a form requires one.
+  if (field.kind === 'text' && field.label === 'Degree') return degreeNames[String(input.answers['degree--0'])];
+  if (field.kind === 'text' && field.label === 'Field of Study') return input.answers['discipline--0'];
+  // Ashby's race list names each race "(Not Hispanic or Latino)", so it is picked only beside a confirmed "No" to Hispanic.
+  const race = input.answers.voluntary_race;
+  if (field.kind === 'radio' && field.label === 'Race' && typeof race === 'string' && input.answers.voluntary_hispanic === 'No') {
+    return field.options?.find(option => option === race || option === `${race} (Not Hispanic or Latino)`);
   }
   const common = commonAnswer(input, field);
   // A Yes/No profile fact cannot answer a question whose choices are visa types; the applicant picks one.

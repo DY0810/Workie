@@ -27,6 +27,8 @@ export const AtsFieldSchema = z.strictObject({
 export type AtsField = z.infer<typeof AtsFieldSchema>;
 /** A form's own id when it already fits atsFieldKey, otherwise a stable key derived from it. */
 // A bare number is hashed as it always was, so no Ashby or Lever question key (and its saved answer) changes.
+// The profile stores a degree level; forms name the degree (doctorates are ambiguous, so asked).
+export const degreeNames: Record<string, string> = { high_school: 'High School', associate: "Associate's Degree", bachelor: "Bachelor's Degree", master: "Master's Degree" };
 export const fieldKeyFor = (raw: string) => atsFieldKey.test(raw) && !/^\d+$/.test(raw) ? raw :
   `f-${createHash('sha256').update(raw).digest('hex').slice(0, 24)}`;
 export const formQuestionKey = (field: Pick<AtsField, 'key' | 'label'>) =>
@@ -109,7 +111,10 @@ export function commonAnswer(input: AtsApplication, field: AtsField) {
   if (/\bnot\b|\bhear\b|^if (yes|so)\b/.test(text)) return undefined;
   if (field.kind === 'text') {
     if (/^linkedin\b|\blinkedin (profile|url|link)\b/.test(text)) return input.answers.linkedin;
-    if (/^github\b|\bgithub (profile|url|link|username)\b/.test(text)) return input.answers.github;
+    // A sentence asking for "your GitHub, GitLab, ... or technical portfolio" (Amplify, 2026-11-17) wants the code link.
+    if (/^github\b|\bgithub (profile|url|link|username)\b|\byour github\b/.test(text)) return input.answers.github;
+    // "share your website or LinkedIn page" (Amplify): the applicant's own site, not an employer's.
+    if (/\byour (personal )?website\b/.test(text)) return input.answers.portfolio ?? input.answers.linkedin;
     // A bracketed note ("Website Link (github, portfolio, other)": Aurora) does not change what is asked.
     if (/^(personal |other )?(website|portfolio)( url| link)?( \([^)]*\))?$/.test(text)) return input.answers.portfolio;
   }
