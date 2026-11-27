@@ -1105,6 +1105,22 @@ test('a website question with a bracketed note takes the profile website', () =>
   assert.equal(ask('Website of your current employer'), undefined);
 });
 
+test("someone else's link, a yes/no question and a username never take the applicant's link", () => {
+  const input = { identity: { ats: 'ashby', tenant: 'fixture', requisition: '1' }, company: 'Fixture', role: 'Intern',
+    applicationUrl: 'https://example.test', answers: { linkedin: 'https://linkedin.test/in/me', github: 'https://github.com/fixture-me' } };
+  const ask = (label) => commonAnswer(input, { key: 'k', label, kind: 'text', required: false });
+  assert.equal(ask('LinkedIn Profile'), 'https://linkedin.test/in/me');
+  assert.equal(ask("Referrer's LinkedIn profile"), undefined);
+  assert.equal(ask('LinkedIn URL of your reference'), undefined);
+  assert.equal(ask('Link to your take-home GitHub repository'), undefined);
+  assert.equal(ask('Do you have a LinkedIn profile?'), undefined);
+  assert.equal(ask('GitHub username'), 'fixture-me');
+  assert.equal(ask('LinkedIn (optional)'), 'https://linkedin.test/in/me');
+  assert.equal(ask('LinkedIn headline'), undefined);
+  assert.equal(ask('GitHub stars on your top project'), undefined);
+  assert.equal(commonAnswer({ ...input, answers: { github: 'https://gitlab.test/me' } }, { key: 'k', label: 'GitHub username', kind: 'text', required: false }), undefined);
+});
+
 test('an Ashby form fills its link sentences, education entry and race from the profile', () => {
   const input = { identity: { ats: 'ashby', tenant: 'fixture', requisition: '1' }, company: 'Fixture', role: 'Intern',
     applicationUrl: 'https://example.test', answers: { portfolio: 'https://example.test/me', github: 'https://github.test/me',

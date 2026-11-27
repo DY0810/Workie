@@ -109,10 +109,15 @@ export function commonAnswer(input: AtsApplication, field: AtsField) {
   }
   // A follow-up ("If yes, what type of sponsorship?") is not the yes/no question it follows.
   if (/\bnot\b|\bhear\b|^if (yes|so)\b/.test(text)) return undefined;
-  if (field.kind === 'text') {
-    if (/^linkedin\b|\blinkedin (profile|url|link)\b/.test(text)) return input.answers.linkedin;
+  // Someone else's link (a referrer's LinkedIn, an employer's site, a take-home repository) and a yes/no question
+  // about a link are never the applicant's own link: they are asked.
+  const otherLink = /\b(refer\w*|references?|manager|supervisor|recruiter|interviewer|employer|company|take[- ]home|assignment|repo(sitory)?)\b|^(do|does|are|have|has|is|would|will|can)\b/.test(text);
+  if (field.kind === 'text' && !otherLink) {
+    if (/^linkedin:?( \([^)]*\))?$|\blinkedin (profile|url|link)\b/.test(text)) return input.answers.linkedin;
+    // A username field takes the handle from the profile link, never the whole URL.
+    if (/\bgithub (user ?name|handle)\b/.test(text)) return String(input.answers.github ?? '').match(/^https?:\/\/(?:www\.)?github\.com\/([A-Za-z0-9-]+)\/?$/i)?.[1];
     // A sentence asking for "your GitHub, GitLab, ... or technical portfolio" (Amplify, 2026-11-17) wants the code link.
-    if (/^github\b|\bgithub (profile|url|link|username)\b|\byour github\b/.test(text)) return input.answers.github;
+    if (/^github:?( \([^)]*\))?$|\bgithub (profile|url|link)\b|\byour github\b/.test(text)) return input.answers.github;
     // "share your website or LinkedIn page" (Amplify): the applicant's own site, not an employer's.
     if (/\byour (personal )?website\b/.test(text)) return input.answers.portfolio ?? input.answers.linkedin;
     // A bracketed note ("Website Link (github, portfolio, other)": Aurora) does not change what is asked.
