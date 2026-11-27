@@ -22,6 +22,16 @@ describe('private response boundaries', () => {
     }
   });
 
+  it('refuses an applicant switch from another site before reading the session', async () => {
+    for (const [key, value] of Object.entries({ BETTER_AUTH_URL: origin, BETTER_AUTH_SECRET: 'a'.repeat(64), WORKIE_HOUSEHOLD_PASSCODE: '123456',
+      WORKIE_HOUSEHOLD_DY_EMAIL: 'dy@example.test', WORKIE_HOUSEHOLD_MAY_EMAIL: 'may@example.test' })) vi.stubEnv(key, value);
+    const { POST: select } = await import('@/app/api/auth/applicants/route');
+    const response = await select(new Request(`${origin}/api/auth/applicants`, { method: 'POST',
+      headers: { origin: 'https://evil.example.test', 'content-type': 'application/json' }, body: JSON.stringify({ ownerId: 'household-may-v1' }) }));
+    expect(response.status).toBe(403);
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
   it('overrides shared cache headers while preserving Vary and multiple Set-Cookie headers', () => {
     const headers = new Headers({
       'Vary': 'Accept-Encoding',
